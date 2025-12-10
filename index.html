@@ -1,0 +1,2555 @@
+<head>
+  <meta charset="UTF-8">
+  <title>Nawigacja Azymut</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007BFF">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/suncalc/suncalc.js"></script>
+  
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: sans-serif;
+      transition: background-color 0.3s, color 0.3s;
+      overflow: hidden;
+    }
+    body {
+      background-color: #1e1e1e;
+      color: #fff;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+      filter: brightness(0.9) contrast(0.95);
+      transition: filter 0.3s;
+    }
+    #menuToggle, #menu {
+      position: absolute;
+      z-index: 1000;
+    }
+    #menuToggle {
+      top: 10px; right: 10px;
+      opacity: 1;
+      transition: opacity 0.5s ease-in-out;
+    }
+    #menuToggle button {
+      background: rgba(30, 30, 30, 0.95);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    #menu {
+      top: 50px; right: 10px;
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: rgba(30, 30, 30, 0.95);
+      padding: 10px;
+      border-radius: 8px;
+      max-width: 280px;
+      max-height: calc(100vh - 70px);
+      overflow-y: auto;
+    }
+
+    #etaCalculatorWidget {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        z-index: 1000;
+        display: none;
+        line-height: 1.3;
+        text-align: center;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        min-height: 35px;
+        width: auto;
+        max-width: 95%;
+        box-shadow: none;
+    }
+    .eta-times-row {
+        display: flex;
+        justify-content: space-around;
+        width: 100%;
+        gap: 8px;
+    }
+    .eta-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        font-size: 12px;
+        flex: 1;
+        min-width: 80px;
+    }
+    
+    .eta-range-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        width: 100%;
+    }
+    .eta-range-label {
+        font-size: 11px;
+        color: #ccc;
+        text-transform: uppercase;
+    }
+    .eta-range-times {
+        font-size: 1.8em; 
+        font-weight: bold;
+        white-space: nowrap;
+    }
+    .eta-range-times .eta-time-early {
+        color: #90EE90;
+    }
+    .eta-range-times .eta-time-late {
+        color: #FF8C8C;
+    }
+    .eta-range-minutes {
+        font-size: 1.1em;
+        color: #00FFC0;
+        font-weight: bold;
+        text-shadow: 0 0 5px rgba(0, 255, 192, 0.5);
+        margin-top: 2px;
+    }
+
+    .eta-group .eta-time {
+        font-size: 1.8em;
+        color: #FFA500;
+        font-weight: bold;
+    }
+    .eta-group .eta-value {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #fff;
+    }
+    .eta-group.highlighted .eta-time {
+        font-size: 2.2em;
+    }
+    .eta-group.highlighted .eta-value {
+        font-size: 1.8em; 
+        color: #00FFC0;
+        text-shadow: 0 0 5px rgba(0, 255, 192, 0.5);
+    }
+    
+    .eta-fun-fact-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        padding: 5px;
+    }
+    .eta-fun-fact-image {
+        font-size: 2.5em;
+        margin-bottom: 5px;
+    }
+    .eta-fun-fact-text {
+        font-size: 1.1em;
+        font-weight: bold;
+        text-align: center;
+    }
+    .eta-fun-fact-subtext {
+        font-size: 0.9em;
+        color: #ccc;
+        padding-top: 5px;
+        margin-top: 5px;
+        width: 100%;
+    }
+
+    .eta-low-speed-message {
+        font-size: 12px;
+        color: #ccc;
+        text-align: center;
+        width: 100%;
+        padding: 5px 0;
+    }
+    .gps-sim-message {
+        font-size: 12px;
+        color: yellow;
+        text-align: center;
+        margin-top: 5px;
+    }
+
+    button, select, input {
+      padding: 8px 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      background: #444;
+      color: white;
+      cursor: pointer;
+    }
+    #searchBox button {
+        padding: 12px 15px;
+        font-size: 16px;
+    }
+    .user-arrow-icon svg {
+        transition: transform 0.5s ease-out;
+        transform-origin: center;
+        width: 48px;
+        height: 48px;
+    }
+    .popup-button {
+        padding: 8px 12px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .tourist-link {
+        color: #4A9EFF;
+        cursor: pointer;
+        text-decoration: underline;
+    }
+    .tourist-link:hover {
+        color: #7BB3FF;
+    }
+    .toggle-button-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-top: 5px;
+        border: 1px solid #555;
+        border-radius: 8px;
+        padding: 8px;
+    }
+    .toggle-button-group label {
+        font-size: 12px;
+        color: #ccc;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+    .toggle-button {
+        background-color: #555;
+        color: white;
+        border: none;
+        padding: 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background-color 0.3s, color 0.3s;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .toggle-button:hover {
+        background-color: #666;
+    }
+    .toggle-button.active {
+        background-color: #007BFF;
+        color: white;
+    }
+    button:disabled {
+        background-color: #777;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+    
+    #voiceSearchContainer {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1001;
+    }
+    #startVoiceSearchBtn {
+        background-color: rgba(0, 123, 255, 0.8);
+        border: none;
+        border-radius: 50%;
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 1);
+        animation: pulse-blue 2s infinite;
+        transition: background-color 0.3s;
+    }
+    #startVoiceSearchBtn:hover {
+        background-color: rgba(0, 123, 255, 1);
+        animation: none;
+    }
+    #startVoiceSearchBtn svg {
+        width: 50px;
+        height: 50px;
+        color: white;
+    }
+
+    @keyframes pulse-blue {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(0, 123, 255, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+    }
+
+    @media (max-width: 600px) {
+        #etaCalculatorWidget { font-size: 14px; padding: 10px 14px; }
+        #touristInfo { 
+            font-size: 13px;
+            width: fit-content;
+            max-width: 65%;
+            padding: 8px;
+        }
+        #menu { max-width: 250px; }
+    }
+    @media (orientation: landscape) and (max-height: 600px) {
+        #touristInfo {
+            top: 10px; 
+            left: 10px;
+            /* Zmieniamy szerokość na stałą i wąską */
+            width: 280px; 
+            right: auto; /* Wyłączamy rozciąganie do prawej */
+            max-height: calc(100vh - 20px);
+        }
+        #menu { max-height: calc(100vh - 70px); overflow-y: auto; }
+    }
+
+    .leaflet-control-zoom a {
+        width: 40px !important;
+        height: 40px !important;
+        line-height: 40px !important;
+        font-size: 30px !important;
+        background-color: rgba(68, 68, 68, 0.6) !important;
+        color: white !important;
+        border-radius: 5px !important;
+        margin-bottom: 5px;
+    }
+
+    .leaflet-control-zoom { opacity: 1; transition: opacity 0.5s ease-in-out; }
+    .leaflet-control-zoom--hidden { opacity: 0; pointer-events: none; }
+
+    .map-controls-container {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 900;
+        transition: opacity 0.3s ease-in-out;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .map-controls-container.visible { opacity: 1; pointer-events: auto; }
+
+    #rightControls { top: 100px; right: 10px; gap: 12px; }
+    #leftControls { bottom: 60px; left: 10px; top: auto; }
+    #topLeftControls { top: 10px; left: 10px; }
+
+    .map-controls-container button {
+        background: rgba(30, 30, 30, 0.9);
+        color: white;
+        border: none;
+        padding: 0;
+        width: 45px;
+        height: 45px;
+        border-radius: 8px;
+        font-size: 18px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s, opacity 0.2s;
+        text-align: center;
+        position: relative;
+    }
+    
+    #viewModeButton { width: 70px; height: 70px; font-size: 32px; border-radius: 12px; }
+    #voiceWidgetButton.listening { background-color: #007BFF; animation: pulse-blue 2s infinite; }
+
+    .map-controls-container button:hover { background: rgba(50, 50, 50, 0.95); }
+    .map-controls-container button:disabled { background: rgba(100, 100, 100, 0.7); cursor: not-allowed; }
+
+    .button-tooltip {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        padding: 5px 8px;
+        border-radius: 5px;
+        font-size: 12px;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+        z-index: 1001;
+        transform: translateY(-50%);
+    }
+
+    #rightControls .button-tooltip, #topLeftControls .button-tooltip { left: calc(100% + 5px); top: 50%; }
+    #leftControls .button-tooltip { left: calc(100% + 5px); top: 50%; }
+    .button-tooltip.show { opacity: 1; }
+
+    .dest-marker-icon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        font-family: sans-serif;
+        width: 60px;
+    }
+    .dest-marker-icon svg {
+        width: 24px;
+        height: 24px;
+        filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+    }
+    
+    .dest-elevation-diff {
+        font-size: 12px;
+        font-weight: bold;
+        color: black;
+        background-color: rgba(255, 255, 255, 0.7);
+        border: 1px solid #AAA;
+        text-shadow: none;
+        white-space: nowrap;
+        padding: 2px 4px;
+        border-radius: 3px;
+        margin-top: 4px;
+    }
+    .dest-elevation-diff.positive { color: #D32F2F; }
+    .dest-elevation-diff.negative { color: #1976D2; }
+
+    .celestial-icon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .celestial-icon svg {
+        width: 24px;
+        height: 24px;
+        filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+    }
+    .celestial-label {
+        font-size: 14px;
+        font-weight: normal;
+        color: black;
+        background-color: rgba(255, 255, 255, 0.7);
+        border: 1px solid #AAA;
+        text-shadow: none;
+        white-space: nowrap;
+        padding: 2px 4px;
+        border-radius: 3px;
+        margin-top: 2px;
+    }
+    .celestial-event-label {
+        font-size: 14px;
+        font-weight: normal;
+        color: black;
+        background-color: rgba(255, 255, 255, 0.7);
+        border: 1px solid #AAA;
+        text-shadow: none;
+        white-space: nowrap;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+
+    .history-marker-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background-color: rgba(128, 0, 128, 0.7);
+        border: 2px solid white;
+        box-shadow: 0 0 3px rgba(0,0,0,0.7);
+    }
+    .history-marker-icon svg {
+        width: 10px;
+        height: 10px;
+        fill: white;
+    }
+    
+    #speedLimitWidget {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        z-index: 1000;
+        display: none;
+        text-align: center;
+        min-width: 120px;
+        transition: background-color 0.3s ease-in-out;
+    }
+    #speedLimitWidget.speed-alert {
+        background-color: rgba(255, 0, 0, 0.7);
+        animation: pulse 1s infinite alternate;
+    }
+    @keyframes pulse {
+        from { transform: translateX(-50%) scale(1); }
+        to { transform: translateX(-50%) scale(1.05); }
+    }
+    #speedLimitWidget .limit-text {
+        font-size: 0.9em;
+        color: #ccc;
+    }
+    #speedLimitWidget .distance-text {
+        font-size: 1.5em;
+        color: #00FFC0;
+        text-shadow: 0 0 5px rgba(0, 255, 192, 0.5);
+    }
+    #speedLimitWidget .no-data {
+        color: #aaa;
+        font-size: 0.8em;
+    }
+    .eta-group .eta-time,
+    .eta-group .eta-value {
+        color: #888;
+    }
+    .eta-group.highlighted .eta-time,
+    .eta-group.highlighted .eta-value {
+        color: #FFA500;
+    }
+    .eta-group.highlighted.base-speed .eta-time,
+    .eta-group.highlighted.base-speed .eta-value {
+        color: #00FFC0;
+    }
+    .eta-times-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+    }
+    .eta-group {
+        flex: 1;
+        text-align: center;
+    }
+    #touristInfo {
+        position: absolute;
+        top: 65px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.64);
+        color: white;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        z-index: 1000;
+        display: none;
+        max-width: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+/* --- NOWE STYLE DO DAT BUDOWY I QR --- */
+    
+/* Wygląd etykiety z datą na mapie - POPRAWIONY */
+    .date-label.actual {
+        color: black;
+        font-family: sans-serif;
+        font-weight: bold;
+        font-size: 16px; /* Zwiększona czcionka */
+        background-color: rgba(255, 255, 255, 0.85); /* Białe półprzezroczyste tło */
+        padding: 2px 5px; /* Odrobinę przestrzeni wewnątrz ramki */
+        border-radius: 4px; /* Zaokrąglone rogi */
+        border: 1px solid #999; /* Delikatna ramka */
+        white-space: nowrap;
+        text-align: center;
+        box-shadow: 1px 1px 3px rgba(0,0,0,0.3); /* Cień pod etykietą */
+        transform: translateY(-10px); /* Lekkie podniesienie nad punkt */
+    }
+
+    /* Styl dla kompaktowego okienka info o budynkach */
+    .building-info-entry {
+        border-bottom: 1px solid #555;
+        padding: 4px 0;
+        line-height: 1.2;
+    }
+    .building-info-entry:last-child {
+        border-bottom: none;
+    }
+    .building-addr {
+        font-weight: bold;
+        color: #ddd;
+        font-size: 0.9em;
+    }
+    .building-year {
+        color: #FFA500; /* Pomarańczowy dla wyróżnienia roku */
+        font-weight: bold;
+        font-size: 1.1em;
+        margin-left: 5px;
+    }
+    .building-detail {
+        font-size: 0.8em;
+        color: #aaa;
+        display: block;
+        margin-top: 2px;
+    }
+
+    /* Styl przycisku QR */
+    #speedLimitButton {
+        padding: 0;
+        overflow: hidden;
+        background: white; /* Białe tło pod kod QR */
+    }
+    #speedLimitButton img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        image-rendering: pixelated; /* Ostrość kodu QR */
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+    
+    // --- ZMIENNE GLOBALNE I KONFIGURACJA ---
+    
+    const GDANSK_SHEET_GID = '329556299'; 
+    // ----------------------------------------------------------------------
+
+    let map = L.map('map', { zoomControl: false }).setView([52.2297, 21.0122], 6);
+    L.control.scale({ imperial: false, metric: true, position: 'bottomleft' }).addTo(map);
+    const zoomControl = L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    let currentMapLayer;
+    let recognition = null;
+    let voiceSearchTimeout = null;
+    let lastCurrentSpeed = 0;
+    let autoConfirmTimeout = null;
+    let isProgrammaticMove = false;
+    let isManualMove = false;
+
+    const tileLayers = {
+      osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }),
+      sat: L.layerGroup([
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+              attribution: 'Tiles &copy; Esri',
+              maxZoom: 18
+          }),
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_BoundARIES_and_Places/MapServer/tile/{z}/{y}/{x}', {
+              attribution: '',
+              maxZoom: 18,
+              pane: 'shadowPane'
+          })
+      ]),
+      topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+          attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)',
+          maxZoom: 17
+      })
+    };
+
+    let userMarker = null, destMarker = null, line = null, tempMarker = null;
+    let destLatLng = null;
+    let manualContextLatLng = null;
+    let touristInfoVisible = false;
+    let positionHistory = [];
+    let initialUserLocationSet = false;
+    let touristMarkers = [];
+    let currentUserLat = null, currentUserLon = null;
+    let selectedTouristCategory = localStorage.getItem('lastTouristCategory') || 'restauracja';
+
+    const viewModes = ['fit', 'dynamic', 'target_center'];
+    const viewModeLabels = {
+        'fit': '🗺️',
+        'dynamic': '📍',
+        'target_center': '🎯',
+        'none': '🚫'
+    };
+    let currentViewModeIndex = 0;
+    let currentViewMode = viewModes[currentViewModeIndex];
+
+    let gpsTrackingEnabled = false;
+    let gpsWatchId = null;
+    let zoomButtonTimeout;
+    let controlsTimeout;
+    let mapCenteringTimeout = null;
+    let mapViewFitInterval = null;
+    const MAP_VIEW_FIT_INTERVAL = 30000;
+
+    let speedSlower = parseFloat(localStorage.getItem('speedSlower')) || 15;
+    let speedOptimal = parseFloat(localStorage.getItem('speedOptimal')) || 17;
+    let speedFaster = parseFloat(localStorage.getItem('speedFaster')) || 19;
+
+    let etaCalculatorEnabled = false;
+    let etaDisplayMode = 0;
+    
+    let predictiveLine = null;
+    let predictiveLineState = 1;
+
+    let tempMarkerTimeout = null;
+    let currentTooltip = null;
+    let tooltipTimeout = null;
+    let activeTooltipButton = null;
+
+    let lastTouristInfoUpdateTime = 0;
+    const TOURIST_INFO_REFRESH_INTERVAL = 60 * 1000;
+
+    let isGpsSimulated = false;
+    let simulatedLatLng = L.latLng(52.2297, 21.0122);
+    let simulatedSpeed = 5;
+    let simulatedHeading = 0;
+    let simulationIntervalId = null;
+
+    let speedLimitEnabled = false;
+    let currentSpeedLimit = null;
+    let lastSpeedLimitCheckTime = 0;
+    const SPEED_LIMIT_REFRESH_INTERVAL = 15 * 1000;
+
+    let celestialDisplayMode = 0;
+    let celestialCache = {};
+    let lastCelestialUpdate = 0;
+    const CELESTIAL_UPDATE_INTERVAL = 15 * 60 * 1000;
+
+    let sunLine = [], moonLine = [];
+    let sunriseLine = [], sunsetLine = [], moonriseLine = [], moonsetLine = [];
+    let sunIcon = null, moonIcon = null;
+    let sunriseLabel = null, sunsetLabel = null, moonriseLabel = null, moonsetLabel = null;
+    
+    let currentUserElevation = null;
+    let destElevation = null;
+    let elevationUpdateTimer = null;
+    const ELEVATION_UPDATE_INTERVAL = 15000;
+    
+    // --- ZMIENNE DLA WARSTWY HISTORIA I GDAŃSK ---
+    let historyData = [];
+    let historyHeaders = [];
+    let historyAvailableYears = [];
+    let historyDataLoaded = false;
+    let selectedHistoryDate1 = localStorage.getItem('selectedHistoryDate1') || '1925';
+    let selectedHistoryDate2 = localStorage.getItem('selectedHistoryDate2') || '1800';
+    
+    let gdanskData = [];
+    let gdanskDataLoaded = false;
+    
+// --- ZMIENNE DLA WARSTWY BUDYNKI TRÓJMIASTO ---
+    const BUILDINGS_SHEET_ID = '1TmRHJDv6IMlGwg761JV50M8vS4zXTdWBtjDziAleSQI';
+    const BUILDINGS_CSV_URL = 'https://corsproxy.io/?' + encodeURIComponent(`https://docs.google.com/spreadsheets/d/${BUILDINGS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Arkusz1`);
+    let buildingsData = [];
+    let buildingsDataLoaded = false;
+
+    async function fetchBuildingsData() {
+        if (buildingsDataLoaded) return true;
+        try {
+            const response = await fetchWithTimeout(BUILDINGS_CSV_URL, {}, 15000);
+            const text = await response.text();
+            const rows = text.trim().split('\n');
+            if (rows.length < 2) throw new Error("CSV Budynków jest pusty");
+            
+            const headers = parseCsvRow(rows.shift());
+            
+            buildingsData = rows.map(rowStr => {
+                const values = parseCsvRow(rowStr);
+                const obj = {};
+                headers.forEach((header, index) => { obj[header] = values[index] || ''; });
+                return obj;
+            }).filter(item => item['pozycja GPS'] && item['pozycja GPS'].includes(',')); 
+            
+            buildingsDataLoaded = true;
+            return true;
+        } catch (error) {
+            console.error("Błąd Budynków:", error);
+            showCustomAlert(`Nie udało się załadować danych budynków.`);
+            return false;
+        }
+    }
+    const HISTORY_CSV_URL = 'https://corsproxy.io/?' + encodeURIComponent('https://docs.google.com/spreadsheets/d/e/2PACX-1vSHIkKxHr01l_AeNVAtCo3DAmdlCGdhpB_O-EdeBfmdd3Z0dwvnYkhFKOujm-c61phhuFEyK-6X51Rk/pub?gid=187888430&single=true&output=csv');
+    const GDANSK_CSV_URL = 'https://corsproxy.io/?' + encodeURIComponent(`https://docs.google.com/spreadsheets/d/e/2PACX-1vSHIkKxHr01l_AeNVAtCo3DAmdlCGdhpB_O-EdeBfmdd3Z0dwvnYkhFKOujm-c61phhuFEyK-6X51Rk/pub?gid=${GDANSK_SHEET_GID}&single=true&output=csv`);
+
+    async function fetchWithTimeout(url, options = {}, timeout = 8000) {
+        try {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(id);
+            if (!response.ok) throw new Error(`Błąd sieci: ${response.status}`);
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    function populateHistoryDateSelectors() {
+        const select1 = document.getElementById('historyDate1');
+        const select2 = document.getElementById('historyDate2');
+        if (!select1 || !select2 || historyAvailableYears.length === 0) return;
+        select1.innerHTML = '';
+        select2.innerHTML = '';
+        historyAvailableYears.forEach(year => {
+            select1.appendChild(new Option(year, year));
+            select2.appendChild(new Option(year, year));
+        });
+        select1.value = selectedHistoryDate1;
+        select2.value = selectedHistoryDate2;
+        document.getElementById('historyDateSelectors').style.display = 'block';
+    }
+
+    function updateHistoryDates() {
+        selectedHistoryDate1 = document.getElementById('historyDate1').value;
+        selectedHistoryDate2 = document.getElementById('historyDate2').value;
+        localStorage.setItem('selectedHistoryDate1', selectedHistoryDate1);
+        localStorage.setItem('selectedHistoryDate2', selectedHistoryDate2);
+        if (touristInfoVisible && selectedTouristCategory === 'historia') {
+            let lat = currentUserLat || (isGpsSimulated ? simulatedLatLng.lat : null);
+            let lon = currentUserLon || (isGpsSimulated ? simulatedLatLng.lng : null);
+            if (!lat && manualContextLatLng) { lat = manualContextLatLng.lat; lon = manualContextLatLng.lng; }
+            if (lat && lon) loadNearbyTouristSites(lat, lon, 'historia');
+        }
+    }
+
+    function parseCsvRow(str) {
+        if (!str) return [];
+        const values = [];
+        let inQuotes = false;
+        let currentValue = '';
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            if (char === '"') {
+                if (inQuotes && str[i+1] === '"') { currentValue += '"'; i++; }
+                else { inQuotes = !inQuotes; }
+            } else if (char === ',' && !inQuotes) {
+                values.push(currentValue); currentValue = '';
+            } else { currentValue += char; }
+        }
+        values.push(currentValue);
+        return values.map(v => v.replace(/^"|"$/g, '').replace(/\r/g, '').replace(/^\uFEFF/, '').trim());
+    }
+
+    const userIcon = L.divIcon({
+        html: `<svg id="user-arrow" width="48" height="48" viewBox="0 0 24 24"><path d="M12 2L2.5 21.5L12 17L21.5 21.5L12 2Z" fill="#007BFF" stroke="white" stroke-width="1.5"/></svg>`,
+        className: 'user-arrow-icon',
+        iconSize: [48, 48],
+        iconAnchor: [24, 24]
+    });
+
+    function createDestMarkerIcon(elevationDiff = null) {
+        let elevationHtml = '';
+        if (elevationDiff !== null && !isNaN(elevationDiff)) {
+            const diff = Math.round(elevationDiff);
+            const sign = diff > 0 ? '+' : '';
+            let colorClass = '';
+            if (diff > 5) colorClass = 'positive';
+            else if (diff < -5) colorClass = 'negative';
+            elevationHtml = `<span class="dest-elevation-diff ${colorClass}">${sign}${diff} m</span>`;
+        }
+        return L.divIcon({
+            html: `
+                <div class="dest-marker-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#0000FF" stroke="white" stroke-width="1.5">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    ${elevationHtml}
+                </div>
+            `,
+            className: '',
+            iconSize: [60, 60],
+            iconAnchor: [30, 24]
+        });
+    }
+
+    function createSunIcon(altitudeDeg) {
+        const opacity = altitudeDeg < 0 ? 0.7 : 0.7 + (altitudeDeg / 90) * 0.3;
+        return L.divIcon({
+            html: `
+                <div class="celestial-icon" style="opacity: ${opacity}">
+                    <svg viewBox="0 0 24 24" fill="#FFD700">
+                        <circle cx="12" cy="12" r="6"/>
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                    <span class="celestial-label">${altitudeDeg.toFixed(0)}°</span>
+                </div>
+            `,
+            className: '',
+            iconSize: [32, 40],
+            iconAnchor: [16, 16]
+        });
+    }
+
+    function createMoonIcon(moonIllumination, altitudeDeg) {
+        const opacity = altitudeDeg < 0 ? 0.7 : 0.7 + (altitudeDeg / 90) * 0.3;
+        const phaseValue = moonIllumination.phase;
+        const fractionValue = moonIllumination.fraction;
+        let phaseKey = 0;
+        if (phaseValue > 0.125 && phaseValue <= 0.375) phaseKey = 1;
+        else if (phaseValue > 0.375 && phaseValue <= 0.625) phaseKey = 2;
+        else if (phaseValue > 0.625 && phaseValue <= 0.875) phaseKey = 3;
+        let iconSvg = '';
+        switch (phaseKey) {
+            case 0: iconSvg = '<circle cx="12" cy="12" r="10" stroke="#ccc" fill="none" stroke-width="1.5"/>'; break;
+            case 1: iconSvg = '<path d="M12 2 a 10 10 0 0 1 0 20 V 2 Z" fill="#ccc"/>'; break;
+            case 2: iconSvg = '<circle cx="12" cy="12" r="10" fill="#ccc"/>'; break;
+            case 3: iconSvg = '<path d="M12 2 a 10 10 0 0 0 0 20 V 2 Z" fill="#ccc"/>'; break;
+        }
+        const phasePercent = (fractionValue * 100).toFixed(0);
+        return L.divIcon({
+            html: `
+                <div class="celestial-icon" style="opacity: ${opacity}">
+                    <svg viewBox="0 0 24 24">
+                        ${iconSvg}
+                    </svg>
+                    <span class="celestial-label">${altitudeDeg.toFixed(0)}° (${phasePercent}%)</span>
+                </div>
+            `,
+            className: '',
+            iconSize: [32, 40],
+            iconAnchor: [16, 16]
+        });
+    }
+
+    function getLineOptions(altitudeDeg, colorFill, colorCasing = 'black') {
+        let casingWeight, fillWeight, dashStyle;
+        if (altitudeDeg < 0) {
+            casingWeight = 3; fillWeight = 1; dashStyle = '2, 6';
+        } else {
+            casingWeight = 5; fillWeight = 2; dashStyle = null;
+        }
+        return [
+            { color: colorCasing, weight: casingWeight, opacity: 0.8, dashArray: dashStyle },
+            { color: colorFill, weight: fillWeight, opacity: 1, dashArray: dashStyle }
+        ];
+    }
+
+const categories = {
+        "apteka": { query: "[amenity=pharmacy]", name: "Apteki", type: "node", radius: 20000, handler: "overpass" },
+        "bankomat": { query: "[amenity=atm]", name: "Bankomaty", type: "node", radius: 20000, handler: "overpass" },
+        "budynki_trojmiasto": { query: null, name: "Data budowy (Trójmiasto)", type: "custom", handler: "buildings" }, // <--- NOWA POZYCJA
+        "historia": { query: null, name: "Historia Przynależności", type: "custom", handler: "history" },
+        "gdansk_expansion": { query: null, name: "Data przyłączenia do Gdańska", type: "custom", handler: "gdansk_expansion" },
+        "hotel": { query: "[tourism=hotel]", name: "Hotele", type: "node", radius: 20000, handler: "overpass" },
+        "jezioro": { query: "[natural=water]", name: "Jeziora", type: "way", radius: 20000, handler: "overpass" },
+        "miejsce_kultu": { query: "[amenity=place_of_worship]", name: "Miejsca kultu", type: "node", radius: 20000, handler: "overpass" },
+        "muzeum": { query: "[tourism=museum]", name: "Muzea", type: "node", radius: 20000, handler: "overpass" },
+        "park": { query: "[leisure=park]", name: "Parki", type: "node", radius: 20000, handler: "overpass" },
+        "plac_zabaw": { query: "[leisure=playground]", name: "Place zabaw", type: "node", radius: 20000, handler: "overpass" },
+        "poidelko": { query: "[amenity=drinking_water]", name: "Poidełka publiczne", type: "node", radius: 20000, handler: "overpass" },
+        "publiczne_toalety": { query: "[amenity=toilets]", name: "Publiczne toalety", type: "node", radius: 20000, handler: "overpass" },
+        "punkt_widokowy": { query: "[tourism=viewpoint]", name: "Punkty widokowe", type: "node", radius: 20000, handler: "overpass" },
+        "regionalizacja": { query: null, name: "Regionalizacja", type: "custom", handler: "regionalization" },
+        "restauracja": { query: "[amenity=restaurant]", name: "Restauracje", type: "node", radius: 20000, handler: "overpass" },
+        "rzeka": { query: "[waterway=river]", name: "Rzeki", type: "way", radius: 20000, handler: "overpass" },
+        "samolot_historyczny": { query: "[historic=aircraft]", name: "Samoloty historyczne", type: "node", radius: 20000, handler: "overpass" },
+        "stacja_napraw_rowerow": { query: "[amenity=bicycle_repair_station]", name: "Stacje napraw rowerów", type: "node", radius: 20000, handler: "overpass" },
+        "stacja_paliw": { query: "[amenity=fuel]", name: "Stacje paliw", type: "node", radius: 20000, handler: "overpass" },
+        "supermarket": { query: "[shop=supermarket]", name: "Supermarkety", type: "node", radius: 20000, handler: "overpass" },
+        "szpital": { query: "[amenity=hospital]", name: "Szpitale", type: "node", radius: 20000, handler: "overpass" },
+        "wodospad": { query: "[waterway=waterfall]", name: "Wodospady", type: "node", radius: 20000, handler: "overpass" },
+        "zamek": { query: "[historic=castle]", name: "Zamki", type: "node", radius: 20000, handler: "overpass" }
+    };
+    function populateCategories() {
+        const selectElement = document.getElementById('categorySelect');
+        selectElement.innerHTML = '';
+        const sortedCategoryKeys = Object.keys(categories).sort((a, b) => categories[a].name.localeCompare(categories[b].name));
+        sortedCategoryKeys.forEach(key => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = categories[key].name;
+            selectElement.appendChild(option);
+        });
+        selectElement.value = selectedTouristCategory;
+    }
+
+    function changeMapStyle(style) {
+        localStorage.setItem('lastMapStyle', style);
+        if (currentMapLayer) map.removeLayer(currentMapLayer);
+        currentMapLayer = tileLayers[style];
+        map.addLayer(currentMapLayer);
+    }
+
+    async function startNavigation(destinationLatLng) {
+        if (tempMarker) {
+            map.removeLayer(tempMarker);
+            tempMarker = null;
+            if (tempMarkerTimeout) { clearTimeout(tempMarkerTimeout); tempMarkerTimeout = null; }
+        }
+        destLatLng = destinationLatLng;
+        destElevation = null; currentUserElevation = null;
+        if (destMarker) map.removeLayer(destMarker);
+        destMarker = L.marker(destLatLng, { icon: createDestMarkerIcon(null) }).addTo(map);
+        etaDisplayMode = 3; 
+        speedLimitEnabled = true;
+        updateEtaCalculatorButtonDisplay();
+        updateSpeedLimitButtonDisplay();
+        document.getElementById('etaCalculatorWidget').style.display = 'flex';
+        document.getElementById('speedLimitWidget').style.display = 'block';
+        positionHistory = [];
+        if (!gpsTrackingEnabled && !isGpsSimulated) toggleGpsTracking();
+        setViewMode('fit');
+        showControls();
+        updateETACalculator();
+        if (userMarker) {
+             updateLocationInfo({ coords: { latitude: userMarker.getLatLng().lat, longitude: userMarker.getLatLng().lng, speed: userMarker.getLatLng().speed || 0, heading: userMarker.getLatLng().heading || 0 } });
+        } else if (isGpsSimulated) {
+            updateLocationInfo({ coords: { latitude: simulatedLatLng.lat, longitude: simulatedLatLng.lng, speed: simulatedSpeed / 3.6, heading: simulatedHeading } });
+        }
+        try {
+            destElevation = await fetchElevation(destLatLng.lat, destLatLng.lng);
+            updateDestinationMarkerIcon();
+            startElevationUpdateLoop();
+        } catch (e) {
+            console.error("Nie udało się pobrać wysokości celu:", e);
+            destElevation = null;
+        }
+    }
+
+    function searchAddress() {
+      document.getElementById('voiceSearchContainer').style.display = 'none';
+      const query = document.getElementById('address').value;
+      if (!query) {
+        showCustomAlert('Adres nie może być pusty.');
+        return;
+      }
+      fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`, {}, 10000)
+        .then(res => res.json())
+        .then(data => {
+          if (data.length === 0) {
+            showCustomAlert('Nie znaleziono adresu.');
+            return;
+          }
+          const { lat, lon } = data[0];
+          startNavigation(L.latLng(lat, lon));
+          if(document.getElementById('menu').style.display === 'flex') toggleMenu();
+        })
+        .catch(err => {
+            console.error("Błąd wyszukiwania adresu:", err);
+            showCustomAlert('Błąd wyszukiwania adresu.');
+        });
+    }
+
+    function cancelNavigation() {
+      if (line) map.removeLayer(line);
+      if (destMarker) map.removeLayer(destMarker);
+      if (tempMarker) map.removeLayer(tempMarker);
+      destLatLng = null; tempMarker = null;
+      if (tempMarkerTimeout) { clearTimeout(tempMarkerTimeout); tempMarkerTimeout = null; }
+      destElevation = null; currentUserElevation = null;
+      stopElevationUpdateLoop(); stopMapViewFitTimer();
+      etaDisplayMode = 0; speedLimitEnabled = false;
+      document.getElementById('etaCalculatorWidget').style.display = 'none';
+      document.getElementById('speedLimitWidget').style.display = 'none';
+      updateEtaCalculatorButtonDisplay(); updateSpeedLimitButtonDisplay();
+      positionHistory = [];
+      if (gpsTrackingEnabled || isGpsSimulated) setViewMode('fit');
+      else map.setView(map.getCenter(), map.getZoom());
+      showControls();
+    }
+
+    function updateLine() {
+      if (userMarker && destLatLng) {
+        if (line) map.removeLayer(line);
+        line = L.polyline([userMarker.getLatLng(), destLatLng], { color: 'red', dashArray: '5, 5' }).addTo(map);
+      }
+    }
+
+    function haversineDistance(latlng1, latlng2) {
+      const R = 6371;
+      const toRad = deg => deg * Math.PI / 180;
+      const dLat = toRad(latlng2.lat - latlng1.lat);
+      const dLon = toRad(latlng2.lng - latlng1.lng);
+      const lat1 = toRad(latlng1.lat);
+      const lat2 = toRad(latlng2.lat);
+      const a = Math.sin(dLat / 2)**2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2)**2;
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    function calculateBearing(startLat, startLng, destLat, destLng) {
+        const toRad = deg => deg * Math.PI / 180;
+        const toDeg = rad => rad * 180 / Math.PI;
+        const startLatRad = toRad(startLat);
+        const destLatRad = toRad(destLat);
+        const deltaLngRad = toRad(destLng - startLng);
+        const y = Math.sin(deltaLngRad) * Math.cos(destLatRad);
+        const x = Math.cos(startLatRad) * Math.sin(destLatRad) - Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(deltaLngRad);
+        return (toDeg(Math.atan2(y, x)) + 360) % 360;
+    }
+
+    function calculateDestinationPoint(lat, lon, bearing, distanceKm) {
+        const R = 6371;
+        const toRad = deg => deg * Math.PI / 180;
+        const toDeg = rad => rad * 180 / Math.PI;
+        const latRad = toRad(lat);
+        const lonRad = toRad(lon);
+        const bearingRad = toRad(bearing);
+        const latDestRad = Math.asin(
+            Math.sin(latRad) * Math.cos(distanceKm / R) +
+            Math.cos(latRad) * Math.sin(distanceKm / R) * Math.cos(bearingRad)
+        );
+        let lonDestRad = lonRad + Math.atan2(
+            Math.sin(bearingRad) * Math.sin(distanceKm / R) * Math.cos(latRad),
+            Math.cos(distanceKm / R) - Math.sin(latRad) * Math.sin(latDestRad)
+        );
+        lonDestRad = (lonDestRad + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+        return L.latLng(toDeg(latDestRad), toDeg(lonDestRad));
+    }
+
+    function updateMapView(currentLatLng, currentSpeed) {
+        if (!currentLatLng) return;
+        if (isManualMove) return;
+        isProgrammaticMove = true; 
+        if (currentViewMode === 'fit') {
+            if (destLatLng) {
+                const bounds = L.latLngBounds(currentLatLng, destLatLng);
+                const isLandscape = window.matchMedia("(orientation: landscape)").matches && window.innerHeight < 600;
+                const padding = isLandscape ? { paddingTopLeft: [200, 20], paddingBottomRight: [20, 20] } : { padding: [50, 50] };
+                map.fitBounds(bounds, { ...padding, animate: false, maxZoom: 18 });
+            } else {
+                map.setView(currentLatLng, map.getZoom());
+            }
+        } else if (currentViewMode === 'dynamic') {
+            map.panTo(currentLatLng, { animate: false });
+        } else if (currentViewMode === 'target_center') {
+            if (isManualMove) return; 
+            if (destLatLng) map.panTo(destLatLng, { animate: false });
+            else map.panTo(currentLatLng, { animate: false });
+        }
+    }
+
+    function toggleViewMode() {
+        isManualMove = false;
+        currentViewModeIndex = (currentViewModeIndex + 1) % viewModes.length;
+        setViewMode(viewModes[currentViewModeIndex]);
+    }
+
+    function setViewMode(mode) {
+        isManualMove = false;
+        stopMapViewFitTimer();
+        isProgrammaticMove = true;
+        currentViewModeIndex = viewModes.indexOf(mode);
+        if (currentViewModeIndex === -1) currentViewModeIndex = 0;
+        currentViewMode = viewModes[currentViewModeIndex];
+        
+        // ZMIANA: Przywrócono logikę dla przycisku na mapie (emotki)
+        const viewModeButton = document.getElementById('viewModeButton');
+        document.getElementById('viewModeButton').innerHTML = viewModeLabels[currentViewMode];
+        localStorage.setItem('currentViewMode', currentViewMode);
+        
+        if (gpsTrackingEnabled || isGpsSimulated) {
+            viewModeButton.disabled = false;
+            let currentModeText;
+            switch(currentViewMode) {
+                case 'fit': currentModeText = 'Dopasuj trasę'; break;
+                case 'dynamic': currentModeText = 'Skup na mnie'; break;
+                case 'target_center': currentModeText = 'Cel w centrum'; break;
+                default: currentModeText = '';
+            }
+            viewModeButton.setAttribute('data-tooltip', `Widok: ${currentModeText}`);
+        } else {
+            viewModeButton.innerHTML = viewModeLabels['none'];
+            viewModeButton.disabled = true;
+            viewModeButton.setAttribute('data-tooltip', 'Widok: GPS wyłączony');
+        }
+
+        const currentLatLng = userMarker ? userMarker.getLatLng() : (isGpsSimulated ? simulatedLatLng : null);
+        if (!currentLatLng) return;
+        if (currentViewMode === 'fit') updateMapView(currentLatLng, lastCurrentSpeed);
+        else if (currentViewMode === 'dynamic') {
+            map.setZoom(18, { animate: false });
+            updateMapView(currentLatLng, lastCurrentSpeed);
+        } else if (currentViewMode === 'target_center') {
+            if (destLatLng) map.setView(destLatLng, 18, { animate: false });
+            else map.setView(currentLatLng, 18, { animate: false });
+        }
+        setTimeout(() => { isProgrammaticMove = false; }, 100);
+    }
+    
+    function startQuickVoiceSearch() {
+        const btn = document.getElementById('voiceWidgetButton');
+        if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+            showCustomAlert('Brak wsparcia dla rozpoznawania mowy.');
+            return;
+        }
+        
+        if (recognition && btn.classList.contains('listening')) {
+            recognition.abort();
+            btn.classList.remove('listening');
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!recognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'pl-PL'; 
+            recognition.interimResults = true; 
+            recognition.continuous = false;
+        }
+        
+        recognition.onresult = (event) => {
+            clearTimeout(autoConfirmTimeout);
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) transcript += event.results[i][0].transcript;
+            
+            document.getElementById('address').value = transcript;
+            
+            if (event.results[event.results.length - 1].isFinal) {
+                autoConfirmTimeout = setTimeout(() => { 
+                    searchAddress(); 
+                    const btn = document.getElementById('voiceWidgetButton');
+                    if(btn) btn.classList.remove('listening');
+                }, 2500);
+            }
+        };
+        
+        recognition.onerror = (event) => { 
+             showCustomAlert('Błąd mowy: ' + event.error);
+             const btn = document.getElementById('voiceWidgetButton');
+             if(btn) btn.classList.remove('listening');
+        };
+        
+        recognition.onend = () => { 
+            const btn = document.getElementById('voiceWidgetButton');
+            if(btn) btn.classList.remove('listening');
+        };
+
+        try {
+            document.getElementById('address').value = '';
+            btn.classList.add('listening');
+            recognition.start();
+            showCustomAlert('Mów teraz...');
+            setTimeout(() => {
+                if(btn.classList.contains('listening')) {
+                     recognition.stop();
+                     btn.classList.remove('listening');
+                }
+            }, 8000);
+        } catch(e) { 
+            showCustomAlert("Błąd mikrofonu."); 
+            btn.classList.remove('listening');
+        }
+    }
+
+    function getFunEtaFact(minutes) {
+        if (minutes < 2) return { text: "Już prawie jesteś!", emoji: "🏁" };
+        if (minutes <= 4) return { text: "To tyle, co jeden utwór muzyczny.", emoji: "🎵" };
+        if (minutes <= 7) return { text: "To tyle, co ugotowanie jajka na twardo.", emoji: "🥚" };
+        if (minutes <= 12) return { text: "Zdążysz zaparzyć i wypić kawę.", emoji: "☕" };
+        if (minutes <= 25) return { text: "To krócej niż odcinek serialu.", emoji: "📺" };
+        if (minutes <= 50) return { text: "To mniej niż połowa meczu piłkarskiego.", emoji: "⚽" };
+        if (minutes <= 70) return { text: "To mniej więcej tyle, co wykład uniwersytecki.", emoji: "🧑‍🏫" };
+        if (minutes <= 100) return { text: "Zdążysz obejrzeć krótki film.", emoji: "🎬" };
+        return { text: "To będzie dłuższa podróż...", emoji: "🗺️" };
+    }
+
+    function updateETACalculator() {
+        speedSlower = parseFloat(document.getElementById('speedSlower').value) || 15;
+        speedOptimal = parseFloat(document.getElementById('speedOptimal').value) || 17;
+        speedFaster = parseFloat(document.getElementById('speedFaster').value) || 19;
+        localStorage.setItem('speedSlower', speedSlower);
+        localStorage.setItem('speedOptimal', speedOptimal);
+        localStorage.setItem('speedFaster', speedFaster);
+        const etaWidget = document.getElementById('etaCalculatorWidget');
+        if (etaDisplayMode === 0) { etaWidget.style.display = 'none'; return; }
+        if (!destLatLng || !(userMarker || isGpsSimulated)) {
+             etaWidget.innerHTML = '<span class="eta-low-speed-message">Ustaw cel i włącz GPS.</span>';
+             etaWidget.style.display = 'flex';
+             return;
+        }
+        const currentLatLng = userMarker ? userMarker.getLatLng() : simulatedLatLng;
+        const currentRemainingDist = haversineDistance(currentLatLng, destLatLng);
+        const etaMinutesSlower = calculateEtaInMinutes(speedSlower, currentRemainingDist);
+        const etaMinutesOptimal = calculateEtaInMinutes(speedOptimal, currentRemainingDist);
+        const etaMinutesFaster = calculateEtaInMinutes(speedFaster, currentRemainingDist);
+        const currentTime = Date.now();
+        let displayHtml = '';
+
+        switch (etaDisplayMode) {
+            case 1:
+                const currentSpeed = lastCurrentSpeed || simulatedSpeed || 0;
+                const diffSlower = Math.abs(currentSpeed - speedSlower);
+                const diffOptimal = Math.abs(currentSpeed - speedOptimal);
+                const diffFaster = Math.abs(currentSpeed - speedFaster);
+                let highlightSlower = false, highlightOptimal = false, highlightFaster = false;
+                if (diffOptimal <= diffSlower && diffOptimal <= diffFaster) highlightOptimal = true;
+                else if (diffSlower <= diffFaster) highlightSlower = true;
+                else highlightFaster = true;
+                displayHtml += `<div class="eta-times-row">`;
+                displayHtml += `<div class="eta-group ${highlightSlower ? 'highlighted' : ''}"><div class="eta-time">${formatEtaAsClock(currentTime + etaMinutesSlower * 60 * 1000)}</div><div class="eta-value">${Math.round(etaMinutesSlower)} min</div></div>`;
+                displayHtml += `<div class="eta-group ${highlightOptimal ? 'highlighted base-speed' : ''}"><div class="eta-time">${formatEtaAsClock(currentTime + etaMinutesOptimal * 60 * 1000)}</div><div class="eta-value">${Math.round(etaMinutesOptimal)} min</div></div>`;
+                displayHtml += `<div class="eta-group ${highlightFaster ? 'highlighted' : ''}"><div class="eta-time">${formatEtaAsClock(currentTime + etaMinutesFaster * 60 * 1000)}</div><div class="eta-value">${Math.round(etaMinutesFaster)} min</div></div>`;
+                displayHtml += `</div>`;
+                break;
+            case 3:
+                const etaTimeSlower = formatEtaAsClock(currentTime + etaMinutesSlower * 60 * 1000);
+                const etaTimeFaster = formatEtaAsClock(currentTime + etaMinutesFaster * 60 * 1000);
+                const minFaster = Math.round(etaMinutesFaster);
+                const minSlower = Math.round(etaMinutesSlower);
+                let timeHtml = '', minuteHtml = '';
+                if (minFaster === minSlower) {
+                    timeHtml = `<span class="eta-time-early">${etaTimeFaster}</span>`;
+                    minuteHtml = `(za ok. ${minFaster} min)`;
+                } else {
+                    timeHtml = `<span class="eta-time-early">${etaTimeFaster}</span> - <span class="eta-time-late">${etaTimeSlower}</span>`;
+                    minuteHtml = `(za ok. ${minFaster}-${minSlower} minut)`;
+                }
+                displayHtml += `<div class="eta-range-container"><span class="eta-range-label">Przybycie</span><div class="eta-range-times">${timeHtml}</div><span class="eta-range-minutes">${minuteHtml}</span></div>`;
+                break;
+            case 4:
+                const funFact = getFunEtaFact(etaMinutesOptimal);
+                displayHtml += `<div class="eta-fun-fact-container"><div class="eta-fun-fact-image">${funFact.emoji}</div><div class="eta-fun-fact-text">${funFact.text}</div><div class="eta-fun-fact-subtext">Cel za: ${Math.round(etaMinutesOptimal)} min</div></div>`;
+                break;
+        }
+        etaWidget.innerHTML = displayHtml;
+        etaWidget.style.display = 'flex';
+        positionTouristInfo();
+    }
+
+    function toggleEtaCalculator() {
+        if (etaDisplayMode === 3) etaDisplayMode = 1;
+        else if (etaDisplayMode === 1) etaDisplayMode = 4;
+        else if (etaDisplayMode === 4) etaDisplayMode = 0;
+        else etaDisplayMode = 3;
+        updateEtaCalculatorButtonDisplay();
+        updateETACalculator();
+    }
+
+    function toggleMenu() {
+      const menu = document.getElementById('menu');
+      menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          showCustomAlert(`Błąd pełnego ekranu: ${err.name}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+      showControls();
+    }
+
+    function toggleTouristInfo() {
+        touristInfoVisible = !touristInfoVisible;
+        const touristInfo = document.getElementById('touristInfo');
+        const toggleTouristInfoButton = document.getElementById('toggleTouristInfoButton');
+        if (touristInfoVisible) {
+            toggleTouristInfoButton.innerHTML = 'ℹ️';
+            toggleTouristInfoButton.setAttribute('data-tooltip', 'Informacje turystyczne: Włączone');
+            touristInfo.style.display = 'block';
+            positionTouristInfo();
+            if (currentUserLat && currentUserLon) {
+                loadNearbyTouristSites(currentUserLat, currentUserLon, selectedTouristCategory);
+            } else {
+                document.getElementById('touristInfoContent').innerHTML = 'Oczekiwanie na lokalizację...';
+            }
+        } else {
+            toggleTouristInfoButton.innerHTML = 'ℹ️';
+            toggleTouristInfoButton.setAttribute('data-tooltip', 'Informacje turystyczne: Wyłączone');
+            touristInfo.style.display = 'none';
+        }
+        document.getElementById('toggleTouristInfoButton').disabled = !gpsTrackingEnabled && !isGpsSimulated;
+        showControls();
+    }
+
+    function positionTouristInfo() {
+        const touristInfo = document.getElementById('touristInfo');
+        touristInfo.style.top = '65px';
+        touristInfo.style.left = '10px';
+    }
+
+async function changeTouristCategory() {
+        selectedTouristCategory = document.getElementById('categorySelect').value;
+        localStorage.setItem('lastTouristCategory', selectedTouristCategory);
+        
+        const historySelectors = document.getElementById('historyDateSelectors');
+        const buildingSettings = document.getElementById('buildingSettings');
+        
+        // Obsługa widoczności paneli ustawień
+        if (selectedTouristCategory === 'historia') {
+            historySelectors.style.display = 'block'; 
+            buildingSettings.style.display = 'none';
+            if (!historyDataLoaded) {
+                document.getElementById('historyDate1').innerHTML = '<option>Ładowanie...</option>';
+                document.getElementById('historyDate2').innerHTML = '<option>Ładowanie...</option>';
+            }
+        } else if (selectedTouristCategory === 'budynki_trojmiasto') {
+            historySelectors.style.display = 'none';
+            buildingSettings.style.display = 'block'; // Pokaż suwak dla budynków
+        } else {
+            historySelectors.style.display = 'none';
+            buildingSettings.style.display = 'none';
+        }
+        
+        if (touristInfoVisible) {
+            const lat = currentUserLat || (isGpsSimulated ? simulatedLatLng.lat : null);
+            const lon = currentUserLon || (isGpsSimulated ? simulatedLatLng.lng : null);
+            if (lat && lon) {
+                let canLoad = true;
+                if (selectedTouristCategory === 'historia' && !historyDataLoaded) {
+                    document.getElementById('touristInfoContent').innerHTML = 'Ładowanie danych historycznych...';
+                    const success = await fetchHistoryData(); 
+                    if (!success) canLoad = false;
+                }
+                
+                if (selectedTouristCategory === 'gdansk_expansion' && !gdanskDataLoaded) {
+                    document.getElementById('touristInfoContent').innerHTML = 'Ładowanie danych Gdańska...';
+                    const success = await fetchGdanskData();
+                    if (!success) canLoad = false;
+                }
+
+                // Dodane ładowanie budynków
+                if (selectedTouristCategory === 'budynki_trojmiasto' && !buildingsDataLoaded) {
+                    document.getElementById('touristInfoContent').innerHTML = 'Ładowanie bazy budynków...';
+                    const success = await fetchBuildingsData();
+                    if (!success) canLoad = false;
+                }
+                
+                if (canLoad) loadNearbyTouristSites(lat, lon, selectedTouristCategory);
+            }
+        }
+        showControls();
+    }
+    function onMapClick(e) {
+        showControls();
+        manualContextLatLng = e.latlng;
+        if (touristInfoVisible && !gpsTrackingEnabled && !isGpsSimulated) {
+            loadNearbyTouristSites(manualContextLatLng.lat, manualContextLatLng.lng, selectedTouristCategory);
+        }
+        const clickedElement = e.originalEvent.target;
+        const isUIElement = clickedElement.closest('.map-controls-container') ||
+                            clickedElement.closest('#menuToggle') ||
+                            clickedElement.closest('#menu') ||
+                            clickedElement.closest('#etaCalculatorWidget') ||
+                            clickedElement.closest('#touristInfo') ||
+                            clickedElement.closest('#speedLimitWidget');
+        if (isUIElement) return;
+        hideTooltip();
+        const { lat, lng } = e.latlng;
+        const popupContent = document.createElement('div');
+        popupContent.style.textAlign = 'center';
+        popupContent.innerHTML = `<b>Wybrać ten punkt?</b><br>`;
+        const setDestButton = document.createElement('button');
+        setDestButton.className = 'popup-button';
+        setDestButton.innerText = 'Ustaw jako cel';
+        setDestButton.onclick = () => { startNavigation(L.latLng(lat, lng)); map.closePopup(); };
+        popupContent.appendChild(setDestButton);
+        if (tempMarker) {
+            map.removeLayer(tempMarker); tempMarker = null;
+            if (tempMarkerTimeout) { clearTimeout(tempMarkerTimeout); tempMarkerTimeout = null; }
+        }
+        tempMarker = L.marker(e.latlng, { icon: createDestMarkerIcon() }).addTo(map).bindPopup(popupContent);
+        tempMarker.on('popupopen', () => {
+            tempMarkerTimeout = setTimeout(() => {
+                if (tempMarker && map.hasLayer(tempMarker)) { map.removeLayer(tempMarker); tempMarker = null; }
+                tempMarkerTimeout = null;
+            }, 2000);
+        });
+        tempMarker.on('popupclose', () => {
+            if (tempMarkerTimeout) { clearTimeout(tempMarkerTimeout); tempMarkerTimeout = null; }
+            if(tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
+        });
+        tempMarker.openPopup();
+    }
+
+    function getCountryColor(countryName) {
+        if (!countryName || countryName.includes('Brak danych')) return '#AAAAAA';
+        const lowerCaseName = countryName.toLowerCase();
+        if (lowerCaseName.includes('polska') || lowerCaseName.includes('polskie') || lowerCaseName.includes('poland')) return '#FFD700';
+        if (lowerCaseName.includes('niemcy') || lowerCaseName.includes('pruskie') || lowerCaseName.includes('prusy') || lowerCaseName.includes('german')) return '#90EE90';
+        if (lowerCaseName.includes('rosja') || lowerCaseName.includes('rosyjskie') || lowerCaseName.includes('zsrr')) return '#FF8C8C';
+        if (lowerCaseName.includes('austro-węgry') || lowerCaseName.includes('austria')) return '#87CEEB';
+        if (lowerCaseName.includes('szwecja') || lowerCaseName.includes('szwedzkie')) return '#4A9EFF';
+        if (lowerCaseName.includes('czechy') || lowerCaseName.includes('czeskie')) return '#FFA500';
+        return '#FFFFFF';
+    }
+
+async function loadNearbyTouristSites(lat, lon, categoryKey) {
+        const categoryData = categories[categoryKey];
+        if (!categoryData) {
+            document.getElementById('touristInfoContent').innerHTML = `Nieznana kategoria: ${categoryKey}`;
+            return;
+        }
+        const infoBox = document.getElementById('touristInfoContent');
+        
+        // Czyścimy stare markery
+        touristMarkers.forEach(m => map.removeLayer(m));
+        touristMarkers = [];
+        infoBox.innerHTML = 'Ładowanie...';
+
+        // 1. OBSŁUGA OVERPASS API (Standardowa)
+        if (categoryData.handler === "overpass") {
+            const radius = categoryData.radius;
+            const queryType = categoryData.type;
+            const queryTag = categoryData.query;
+            const categoryDisplayName = categoryData.name;
+            let query = `[out:json][timeout:25];${queryType}(around:${radius},${lat},${lon})${queryTag};out center 100;`;
+            const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+            try {
+                const res = await fetchWithTimeout(url, {}, 10000);
+                const data = await res.json();
+                const allResults = [];
+                data.elements.forEach(el => {
+                    const elLat = el.lat || el.center?.lat;
+                    const elLon = el.lon || el.center?.lon;
+                    if (!elLat || !elLon) return;
+                    const dist = haversineDistance(L.latLng(lat, lon), L.latLng(elLat, elLon));
+                    const tags = el.tags || {};
+                    const name = tags.name || tags.ref || '[Brak nazwy]';
+                    allResults.push({ name, dist, lat: elLat, lon: elLon, category: categoryDisplayName, tags });
+                });
+                const entries = [`<b>Najbliższe ${categoryDisplayName}:</b>`];
+                allResults.sort((a, b) => a.dist - b.dist);
+                const displayLimit = 3;
+                for (let i = 0; i < Math.min(allResults.length, displayLimit); i++) {
+                    const el = allResults[i];
+                    let displayString = `<span class="tourist-link" onclick="showTouristSiteOnMap(${el.lat}, ${el.lon}, '${el.name.replace(/'/g, "\\'")}');">${el.name}</span> (${el.dist.toFixed(1)} km)`;
+                    entries.push(displayString);
+                    const marker = L.marker([el.lat, el.lon], { icon: createDestMarkerIcon() });
+                    const popupContent = document.createElement('div');
+                    popupContent.innerHTML = `<b>${el.name}</b><br>`;
+                    const navButton = document.createElement('button');
+                    navButton.className = 'popup-button';
+                    navButton.innerText = 'Nawiguj tutaj';
+                    navButton.onclick = () => { startNavigation(L.latLng(el.lat, el.lon)); map.closePopup(); };
+                    popupContent.appendChild(navButton);
+                    marker.bindPopup(popupContent);
+                    marker.addTo(map);
+                    touristMarkers.push(marker);
+                }
+                if (allResults.length === 0) entries.push(`Brak obiektów z kategorii "${categoryDisplayName}" w pobliżu.`);
+                infoBox.innerHTML = entries.join('<br>');
+            } catch (err) {
+                infoBox.innerHTML = `<b>Błąd pobierania danych turystycznych.</b>`;
+            }
+
+        // 2. OBSŁUGA HISTORII
+        } else if (categoryData.handler === "history") {
+            try {
+                if (!historyDataLoaded || historyData.length === 0) { infoBox.innerHTML = `<b>Błąd:</b> Dane historyczne nie są załadowane.`; return; }
+                const userLatLng = L.latLng(lat, lon);
+                const date1 = selectedHistoryDate1;
+                const date2 = selectedHistoryDate2;
+                const citiesWithDist = historyData.map(city => {
+                    try {
+                        const [cityLat, cityLng] = city['pozycja-koordynaty GPS'].split(',').map(s => parseFloat(s.trim()));
+                        if (isNaN(cityLat) || isNaN(cityLng)) return null;
+                        const dist = haversineDistance(userLatLng, L.latLng(cityLat, cityLng));
+                        return { ...city, dist };
+                    } catch (e) { return null; }
+                }).filter(Boolean);
+                citiesWithDist.sort((a, b) => a.dist - b.dist);
+                const nearestCities = citiesWithDist.slice(0, 2);
+                const entries = [`<b>Przynależność (${date1} / ${date2}):</b>`];
+                if (nearestCities.length === 0) { entries.push('Brak miast historycznych w bazie.'); } else {
+                    nearestCities.forEach(city => {
+                    const country1 = city[date1] || '<i>Brak danych</i>';
+                    const country2 = city[date2] || '<i>Brak danych</i>';
+                    const color1 = getCountryColor(country1);
+                    const color2 = getCountryColor(country2);
+                    const cityName = city['Miasto']; 
+                    entries.push(`<hr style="border-color: #555; margin: 5px 0;"><b>${cityName}</b> <span style="font-size: 0.9em; color: #ccc;">(${city.dist.toFixed(0)} km)</span>`);
+                    entries.push(`&nbsp; • ${date1}: <b style="color: ${color1}; text-shadow: 0 0 3px ${color1};">${country1}</b>`);
+                    entries.push(`&nbsp; • ${date2}: <b style="color: ${color2}; text-shadow: 0 0 3px ${color2};">${country2}</b>`);
+                });
+                }
+                infoBox.innerHTML = entries.join('<br>');
+            } catch (error) {
+                infoBox.innerHTML = `<b>Błąd:</b> ${error.message}`;
+            }
+
+        // 3. OBSŁUGA DAT BUDOWY (TRÓJMIASTO) - NOWOŚĆ
+        } else if (categoryData.handler === "buildings") {
+            try {
+// JEŚLI DANE NIE SĄ ZAŁADOWANE, SPRÓBUJ JE POBRAĆ TERAZ
+                if (!buildingsDataLoaded) {
+                    infoBox.innerHTML = 'Pobieranie bazy budynków...';
+                    await fetchBuildingsData(); // Czekaj na pobranie
+                    if (!buildingsDataLoaded || buildingsData.length === 0) {
+                        infoBox.innerHTML = `<b>Błąd:</b> Baza budynków nie załadowana.`;
+                        return;
+                    }
+                }
+                const userLatLng = L.latLng(lat, lon);
+                
+                // Przetwarzanie danych
+                const pointsWithDist = buildingsData.map(item => {
+                    try {
+                        const coords = item['pozycja GPS'].split(',');
+                        if (coords.length !== 2) return null;
+                        const pLat = parseFloat(coords[0].trim());
+                        const pLng = parseFloat(coords[1].trim());
+                        if (isNaN(pLat) || isNaN(pLng)) return null;
+
+                        const dist = haversineDistance(userLatLng, L.latLng(pLat, pLng));
+                        return { 
+                            ...item, 
+                            lat: pLat, 
+                            lng: pLng, 
+                            dist: dist,
+                            // Wyciągamy sam rok z daty (np. "1905" z "1905-1907")
+                            year: (item['data wybudowania'] || '').match(/\b(1\d{3}|20\d{2})\b/)?.[0] || '?'
+                        };
+                    } catch (e) { return null; }
+                }).filter(Boolean);
+
+                // Sortowanie po odległości
+                pointsWithDist.sort((a, b) => a.dist - b.dist);
+
+                // Pobranie limitu z suwaka
+                const limit = parseInt(document.getElementById('buildingCountRange').value) || 5;
+                const nearestPoints = pointsWithDist.slice(0, limit);
+
+                const entries = [`<div style="margin-bottom:5px;"><b>Najbliższe budynki z datą (${limit}):</b></div>`];
+
+                if (nearestPoints.length === 0) {
+                    entries.push('Brak danych w pobliżu.');
+                } else {
+  nearestPoints.forEach(point => {
+                        // Tworzenie treści do okienka info (kompaktowe)
+                        let details = "";
+                        // Dodajemy info tylko jeśli istnieje
+                        if (point['architekt']) details += `Arch: ${point['architekt']}. `;
+                        if (point['uwagi']) details += `${point['uwagi']}`;
+                        
+                        // Skracanie długich opisów
+                        if (details.length > 60) details = details.substring(0, 57) + "..."; 
+
+                        // Formatowanie HTML:
+                        // 1. Linia: Adres
+                        // 2. Linia: Rok + (Dystans)
+                        // 3. Linia: Szczegóły (tylko jeśli są)
+                        
+                        let detailsHtml = "";
+                        if (details !== "") {
+                            detailsHtml = `<span class="building-detail">${details}</span>`;
+                        }
+
+                        entries.push(`
+                            <div class="building-info-entry">
+                                <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                                    <span class="building-addr">${point['adres']}</span>
+                                </div>
+                                <div>
+                                    <span class="building-year">${point['data wybudowania']}</span>
+                                    <span style="font-size: 0.8em; color: #aaa; font-weight: normal; margin-left: 5px;">(${(point.dist * 1000).toFixed(0)} m)</span>
+                                </div>
+                                ${detailsHtml}
+                            </div>
+                        `);
+
+                        // Tworzenie Markera na mapie (Data + Kropka)
+                        
+                        // 1. Kropka
+                        const dotMarker = L.circleMarker([point.lat, point.lng], {
+                            radius: 5,
+                            color: 'darkblue',
+                            fillColor: 'darkblue',
+                            fillOpacity: 0.8
+                        });
+                        dotMarker.bindPopup(`<b>${point['adres']}</b><br>Rok: ${point['data wybudowania']}`);
+                        dotMarker.addTo(map);
+                        touristMarkers.push(dotMarker);
+
+                        // 2. Etykieta z rokiem
+                        const textIcon = L.divIcon({
+                            className: 'date-label actual',
+                            html: `<div>${point.year}</div>`,
+                            iconSize: [50, 24], // Nieco szersza ikona dla tła
+                            iconAnchor: [25, 30] // Przesunięcie, by nie zasłaniało kropki
+                        });
+                        const labelMarker = L.marker([point.lat, point.lng], { icon: textIcon, interactive: false });
+                        labelMarker.addTo(map);
+                        touristMarkers.push(labelMarker);
+                    });
+                }
+                infoBox.innerHTML = entries.join('');
+
+            } catch (error) {
+                console.error(error);
+                infoBox.innerHTML = `<b>Błąd:</b> ${error.message}`;
+            }
+
+        // 4. POZOSTAŁE HANDLERY (GDAŃSK, REGIONALIZACJA)
+        } else if (categoryData.handler === "gdansk_expansion") {
+             // ... (TUTAJ ZOSTAWIĆ STARY KOD dla gdańska) ...
+             try {
+                if (!gdanskDataLoaded || gdanskData.length === 0) {
+                    infoBox.innerHTML = `<b>Błąd:</b> Dane Gdańska nie są załadowane.<br><small>Sprawdź GID arkusza.</small>`;
+                    return;
+                }
+                const userLatLng = L.latLng(lat, lon);
+                const placesWithDist = gdanskData.map(place => {
+                    try {
+                        const coordsStr = place['wspolrzedne'];
+                        if (!coordsStr) return null;
+                        let coordsParts = coordsStr.includes(',') ? coordsStr.split(',') : coordsStr.split(' ');
+                        coordsParts = coordsParts.filter(p => p.trim() !== '');
+                        if (coordsParts.length < 2) return null;
+                        const pLat = parseFloat(coordsParts[0]);
+                        const pLng = parseFloat(coordsParts[1]);
+                        if (isNaN(pLat) || isNaN(pLng)) return null;
+                        const dist = haversineDistance(userLatLng, L.latLng(pLat, pLng));
+                        return { 
+                            name: place['lokalizacja'], 
+                            date: place['przylaczenie'], 
+                            dist: dist,
+                            lat: pLat,
+                            lon: pLng
+                        };
+                    } catch (e) { return null; }
+                }).filter(Boolean);
+
+                placesWithDist.sort((a, b) => a.dist - b.dist);
+                const entries = []; 
+                if (placesWithDist.length === 0) {
+                    entries.push('Brak danych w pobliżu.');
+                } else {
+                    const nearest = placesWithDist[0];
+                    const year = parseInt(nearest.date);
+                    let yearColor = 'white';
+                    if (year < 1800) yearColor = '#FFA500'; 
+                    else if (year < 1945) yearColor = '#FFFF00'; 
+                    else yearColor = '#00FFC0'; 
+                    
+                    entries.push(`<b>${nearest.name}</b>`);
+                    entries.push(`Data przyłączenia: <b style="font-size: 1.2em; color: ${yearColor};">${nearest.date}</b>`);
+                    entries.push(`<span style="font-size: 0.75em; color: #aaa; display: block; margin-top: 2px;">Dane punktowe (odl. ${nearest.dist.toFixed(2)} km)</span>`);
+                }
+                infoBox.innerHTML = entries.join('<br>');
+            } catch (error) {
+                infoBox.innerHTML = `<b>Błąd danych:</b> ${error.message}`;
+            }
+
+        } else if (categoryData.handler === "regionalization") {
+            // ... (TUTAJ ZOSTAWIĆ STARY KOD dla regionalizacji) ...
+            try {
+                const url = `https://cbdgmapa.pgi.gov.pl/arcgis/rest/services/regiony_geograf/MapServer/1/query?` +
+                    new URLSearchParams({
+                        f: 'json',
+                        returnGeometry: false,
+                        outFields: '*',
+                        geometryType: 'esriGeometryPoint',
+                        spatialRel: 'esriSpatialRelIntersects',
+                        geometry: `${lon},${lat}`,
+                        inSR: '4326'
+                    });
+                const res = await fetchWithTimeout(url, {}, 8000);
+                const data = await res.json();
+                if (!data.features?.length) { infoBox.innerHTML = `Brak danych regionalizacji dla tej lokalizacji.`; return; }
+                const region = data.features[0].attributes;
+                const name = region.MEZOREGION || "[brak nazwy]";
+                const typ = "mezoregion";
+                const grupa = region.MAKROREGION || region.PROWINCJA || "[brak grupy]";
+                infoBox.innerHTML = `<b>Regionalizacja:</b><br>Mezoregion: ${name}<br>Typ: ${typ}<br>Grupa: ${grupa}`;
+            } catch (err) {
+                infoBox.innerHTML = '<b>Błąd pobierania danych regionalizacji.</b>';
+            }
+        }
+    }
+    function showTouristSiteOnMap(lat, lon, name) {
+      touristMarkers.forEach(m => map.removeLayer(m));
+      touristMarkers = [];
+      const marker = L.marker([lat, lon], { icon: createDestMarkerIcon() }).addTo(map);
+      const popupContent = document.createElement('div');
+      popupContent.innerHTML = `<b>${name}</b><br>`;
+      const navButton = document.createElement('button');
+      navButton.className = 'popup-button';
+      navButton.innerText = 'Nawiguj tutaj';
+      navButton.onclick = () => { startNavigation(L.latLng(lat, lon)); map.closePopup(); };
+      popupContent.appendChild(navButton);
+      marker.bindPopup(popupContent).openPopup();
+      touristMarkers.push(marker);
+      map.setView([lat, lon], 12);
+      showControls();
+    }
+
+    function showControls() {
+        const rightControls = document.getElementById('rightControls');
+        const leftControls = document.getElementById('leftControls');
+        const topLeftControls = document.getElementById('topLeftControls');
+        const menuToggle = document.getElementById('menuToggle');
+        const zoomControlElement = zoomControl.getContainer();
+        rightControls.classList.add('visible');
+        leftControls.classList.add('visible');
+        topLeftControls.classList.add('visible');
+        if (zoomControlElement) zoomControlElement.classList.remove('leaflet-control-zoom--hidden');
+        menuToggle.style.opacity = '1'; menuToggle.style.pointerEvents = 'auto';
+        clearTimeout(controlsTimeout);
+        controlsTimeout = setTimeout(hideControls, 10000);
+    }
+
+    function hideControls() {
+        const rightControls = document.getElementById('rightControls');
+        const leftControls = document.getElementById('leftControls');
+        const topLeftControls = document.getElementById('topLeftControls');
+        const menuToggle = document.getElementById('menuToggle');
+        const zoomControlElement = zoomControl.getContainer();
+        rightControls.classList.remove('visible');
+        leftControls.classList.remove('visible');
+        topLeftControls.classList.remove('visible');
+        if (zoomControlElement) zoomControlElement.classList.add('leaflet-control-zoom--hidden');
+        menuToggle.style.opacity = '0'; menuToggle.style.pointerEvents = 'none';
+        hideTooltip();
+    }
+
+    function showTooltip(button, text) {
+        if (activeTooltipButton === button && currentTooltip && currentTooltip.classList.contains('show')) { hideTooltip(); return; }
+        hideTooltip();
+        currentTooltip = document.createElement('div');
+        currentTooltip.className = 'button-tooltip';
+        currentTooltip.textContent = text;
+        button.appendChild(currentTooltip);
+        const buttonRect = button.getBoundingClientRect();
+        const tooltipRect = currentTooltip.getBoundingClientRect();
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        if (buttonRect.right + tooltipRect.width + 10 > viewportWidth) {
+            currentTooltip.style.left = 'auto'; currentTooltip.style.right = 'calc(100% + 5px)'; currentTooltip.style.transform = 'translateY(-50%)';
+        } else {
+            currentTooltip.style.left = 'calc(100% + 5px)'; currentTooltip.style.right = 'auto'; currentTooltip.style.transform = 'translateY(-50%)';
+        }
+        activeTooltipButton = button;
+        requestAnimationFrame(() => { currentTooltip.classList.add('show'); });
+        clearTimeout(tooltipTimeout);
+        tooltipTimeout = setTimeout(() => { hideTooltip(); }, 3000);
+    }
+
+    function hideTooltip() {
+        if (currentTooltip) {
+            currentTooltip.classList.remove('show');
+            setTimeout(() => {
+                if (currentTooltip && currentTooltip.parentElement) currentTooltip.parentElement.removeChild(currentTooltip);
+                currentTooltip = null; activeTooltipButton = null;
+            }, 300);
+        }
+        clearTimeout(tooltipTimeout);
+    }
+
+    function handleButtonClick(buttonElement, funcToExecute) {
+        const tooltipText = buttonElement.getAttribute('data-tooltip');
+        if (tooltipText) showTooltip(buttonElement, tooltipText);
+        const result = funcToExecute();
+        if (result instanceof Promise) {
+            result.catch(err => { console.error("Błąd akcji:", err); showCustomAlert("Błąd: " + err.message); });
+        }
+        showControls();
+    }
+
+    function showCustomAlert(message) {
+        const existingAlert = document.getElementById('customAlertModal');
+        if (existingAlert) existingAlert.remove();
+        const modal = document.createElement('div');
+        modal.id = 'customAlertModal';
+        modal.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.9); color: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5); z-index: 2000; flex-direction: column; align-items: center; gap: 15px; max-width: 90%; text-align: center; display: flex;`;
+        const messageDiv = document.createElement('div');
+        messageDiv.textContent = message;
+        messageDiv.style.fontSize = '1.1em';
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'OK';
+        closeButton.style.cssText = `padding: 10px 20px; background: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1em;`;
+        closeButton.onclick = () => modal.remove();
+        modal.appendChild(messageDiv);
+        modal.appendChild(closeButton);
+        document.body.appendChild(modal);
+    }
+
+    async function fetchElevation(lat, lon) {
+        try {
+            const response = await fetchWithTimeout(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`, {}, 8000);
+            const data = await response.json();
+            if (data && data.elevation && data.elevation.length > 0) return data.elevation[0];
+            throw new Error("Błąd API wysokości");
+        } catch (error) { return null; }
+    }
+    
+    function updateDestinationMarkerIcon() {
+        if (!destMarker) return;
+        let diff = null;
+        if (destElevation !== null && currentUserElevation !== null) diff = destElevation - currentUserElevation;
+        destMarker.setIcon(createDestMarkerIcon(diff));
+    }
+    
+    function startElevationUpdateLoop() {
+        stopElevationUpdateLoop();
+        const updateLoop = async () => {
+            const currentLatLng = userMarker ? userMarker.getLatLng() : (isGpsSimulated ? simulatedLatLng : null);
+            if (currentLatLng && destLatLng) {
+                try {
+                    const elevation = await fetchElevation(currentLatLng.lat, currentLatLng.lng);
+                    if (elevation !== null) { currentUserElevation = elevation; updateDestinationMarkerIcon(); }
+                } catch (e) { }
+            }
+            if (destLatLng) elevationUpdateTimer = setTimeout(updateLoop, ELEVATION_UPDATE_INTERVAL);
+        };
+        updateLoop();
+    }
+    
+    function stopElevationUpdateLoop() {
+        if (elevationUpdateTimer) { clearTimeout(elevationUpdateTimer); elevationUpdateTimer = null; }
+    }
+
+    function updateLocationInfo(pos) {
+        let latitude, longitude, heading, speed;
+        if (isGpsSimulated) {
+            latitude = pos.coords.latitude; longitude = pos.coords.longitude; heading = pos.coords.heading; speed = pos.coords.speed;
+        } else {
+            if (!pos || pos.coords.latitude === undefined) { 
+                const lastKnownPos = positionHistory.length > 0 ? positionHistory[positionHistory.length - 1] : null;
+                if (lastKnownPos) {
+                    latitude = lastKnownPos.latlng.lat; longitude = lastKnownPos.latlng.lng; heading = lastKnownPos.heading; speed = lastKnownPos.speed / 3.6;
+                } else return;
+            } else {
+                latitude = pos.coords.latitude; longitude = pos.coords.longitude; heading = pos.coords.heading; speed = pos.coords.speed;
+            }
+        }
+        const currentTime = Date.now();
+        const currentLatLng = L.latLng(latitude, longitude);
+        const speedInMs = speed || 0;
+        lastCurrentSpeed = speedInMs * 3.6; 
+        currentLatLng.speed = speedInMs; currentLatLng.heading = heading;
+        currentUserLat = latitude; currentUserLon = longitude;
+        if (!initialUserLocationSet && (gpsTrackingEnabled || isGpsSimulated)) {
+            if (mapCenteringTimeout) clearTimeout(mapCenteringTimeout);
+            mapCenteringTimeout = setTimeout(() => { map.setView(currentLatLng, 16); initialUserLocationSet = true; }, 5000);
+        }
+        if (!userMarker) userMarker = L.marker(currentLatLng, { icon: userIcon }).addTo(map);
+        else userMarker.setLatLng(currentLatLng);
+        if (!isGpsSimulated) { localStorage.setItem('lastLat', latitude); localStorage.setItem('lastLng', longitude); }
+        if (celestialDisplayMode > 0) {
+            const now = Date.now();
+            if (Object.keys(celestialCache).length === 0 || now - lastCelestialUpdate > CELESTIAL_UPDATE_INTERVAL) {
+                calculateAndCacheCelestialData(latitude, longitude, now); lastCelestialUpdate = now;
+            }
+            drawCelestialLines();
+        }
+        if (gpsTrackingEnabled || isGpsSimulated) updateMapView(currentLatLng, lastCurrentSpeed);
+        updateLine();
+        if (predictiveLineState === 1) {
+            if (userMarker && (heading != null && !isNaN(heading))) {
+                const currentLatLngForPredictive = userMarker.getLatLng();
+                const destPoint = calculateDestinationPoint(currentLatLngForPredictive.lat, currentLatLngForPredictive.lng, heading, 0.2);
+                if (predictiveLine) predictiveLine.setLatLngs([currentLatLngForPredictive, destPoint]);
+                else predictiveLine = L.polyline([currentLatLngForPredictive, destPoint], { color: 'blue', weight: 3, dashArray: '5, 5' }).addTo(map);
+            } else if (predictiveLine) { map.removeLayer(predictiveLine); predictiveLine = null; }
+        } else {
+            if (predictiveLine) { map.removeLayer(predictiveLine); predictiveLine = null; }
+        }
+        const arrow = document.getElementById('user-arrow');
+        if (arrow) {
+            if (heading != null && !isNaN(heading)) arrow.style.transform = `rotate(${heading}deg)`;
+            else if (lastCurrentSpeed > 0.5 && positionHistory.length >= 2) {
+                const prevPos = positionHistory[positionHistory.length - 2].latlng;
+                const movementBearing = calculateBearing(prevPos.lat, prevPos.lng, currentLatLng.lat, currentLatLng.lng);
+                arrow.style.transform = `rotate(${movementBearing}deg)`;
+            } else if (lastCurrentSpeed < 0.5 && positionHistory.length < 2) arrow.style.transform = 'rotate(0deg)';
+        }
+        positionHistory.push({ latlng: currentLatLng, time: currentTime, speed: lastCurrentSpeed, heading: heading });
+        const historyLimit = Date.now() - 65 * 60 * 1000;
+        positionHistory = positionHistory.filter(p => p.time > historyLimit);
+        if (destLatLng && etaDisplayMode > 0) updateETACalculator();
+        if (touristInfoVisible && (gpsTrackingEnabled || isGpsSimulated)) {
+            const currentTimeCheck = Date.now();
+            if (currentTimeCheck - lastTouristInfoUpdateTime > TOURIST_INFO_REFRESH_INTERVAL) {
+                loadNearbyTouristSites(latitude, longitude, selectedTouristCategory);
+                lastTouristInfoUpdateTime = currentTimeCheck;
+            }
+        }
+        positionTouristInfo();
+        updateSpeedLimitDisplay();
+    }
+
+    function simulateGpsPosition() {
+        const deltaLat = (Math.random() - 0.5) * 0.00005;
+        const deltaLng = (Math.random() - 0.5) * 0.00005;
+        simulatedLatLng = L.latLng(simulatedLatLng.lat + deltaLat, simulatedLatLng.lng + deltaLng);
+        simulatedHeading = (simulatedHeading + (Math.random() * 5 - 2.5)) % 360;
+        simulatedSpeed = 5 + (Math.random() * 3 - 1.5);
+        updateLocationInfo({ coords: { latitude: simulatedLatLng.lat, longitude: simulatedLatLng.lng, speed: simulatedSpeed / 3.6, heading: simulatedHeading } });
+    }
+
+    function toggleGpsTracking() {
+        const gpsTrackingButton = document.getElementById('gpsTrackingButton');
+        const viewModeButton = document.getElementById('viewModeButton'); // ZMIANA ID
+        const etaCalculatorButton = document.getElementById('menuEtaButton'); // ZMIANA ID
+        const toggleTouristInfoButton = document.getElementById('toggleTouristInfoButton');
+        const speedLimitButton = document.getElementById('speedLimitButton'); 
+        const gpsStatusMessage = document.getElementById('gpsStatusMessage');
+
+        if (mapCenteringTimeout) { clearTimeout(mapCenteringTimeout); mapCenteringTimeout = null; }
+        initialUserLocationSet = false; 
+
+        if (!gpsTrackingEnabled && !isGpsSimulated) {
+            if (navigator.geolocation) {
+                gpsWatchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        isGpsSimulated = false; gpsTrackingEnabled = true; gpsStatusMessage.style.display = 'none'; 
+                        updateLocationInfo(pos); 
+                        gpsTrackingButton.textContent = '🛰️ GPS: Włączony';
+                        viewModeButton.disabled = false; etaCalculatorButton.disabled = false; toggleTouristInfoButton.disabled = false; speedLimitButton.disabled = false; 
+                        showControls();
+                        if (destLatLng) startElevationUpdateLoop();
+                    },
+                    (err) => {
+                        console.error("Błąd GPS:", err.message);
+                        if (err.code === err.PERMISSION_DENIED) {
+                            isGpsSimulated = true; gpsTrackingEnabled = false; 
+                            gpsStatusMessage.textContent = 'GPS wyłączony. Symulacja.'; gpsStatusMessage.style.display = 'block';
+                            simulationIntervalId = setInterval(simulateGpsPosition, 1000); 
+                            gpsTrackingButton.textContent = '🟡 GPS: Symulowany'; 
+                            viewModeButton.disabled = false; etaCalculatorButton.disabled = false; toggleTouristInfoButton.disabled = false; speedLimitButton.disabled = false; 
+                            if (currentViewMode === 'none' || (currentViewMode === 'fit' && !destLatLng)) setViewMode('fit');
+                            showControls(); simulateGpsPosition(); 
+                            if (destLatLng) startElevationUpdateLoop();
+                        } else {
+                            isGpsSimulated = false; gpsTrackingEnabled = false;
+                            gpsStatusMessage.textContent = `Błąd GPS: ${err.message}`; gpsStatusMessage.style.display = 'block';
+                            gpsTrackingButton.textContent = '🛰️ Włącz GPS';
+                            viewModeButton.disabled = true; etaCalculatorButton.disabled = true; toggleTouristInfoButton.disabled = true; speedLimitButton.disabled = true; 
+                            setViewMode('none'); showControls();
+                        }
+                    },
+                    { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+                );
+            } else {
+                isGpsSimulated = true; gpsTrackingEnabled = false;
+                gpsStatusMessage.textContent = 'Brak GPS. Symulacja.'; gpsStatusMessage.style.display = 'block';
+                simulationIntervalId = setInterval(simulateGpsPosition, 1000); 
+                gpsTrackingButton.textContent = '🟡 GPS: Symulowany'; 
+                viewModeButton.disabled = false; etaCalculatorButton.disabled = false; toggleTouristInfoButton.disabled = false; speedLimitButton.disabled = false; 
+                if (currentViewMode === 'none' || (currentViewMode === 'fit' && !destLatLng)) setViewMode('fit');
+                showControls(); simulateGpsPosition(); 
+                if (destLatLng) startElevationUpdateLoop();
+            }
+        } else {
+            if (gpsWatchId !== null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+            if (simulationIntervalId !== null) { clearInterval(simulationIntervalId); simulationIntervalId = null; }
+            stopElevationUpdateLoop(); stopMapViewFitTimer();
+            gpsTrackingEnabled = false; isGpsSimulated = false; gpsStatusMessage.style.display = 'none'; 
+            gpsTrackingButton.textContent = '🛰️ Włącz GPS';
+            viewModeButton.disabled = true; etaCalculatorButton.disabled = true; toggleTouristInfoButton.disabled = true; speedLimitButton.disabled = true; 
+            if (predictiveLine) { map.removeLayer(predictiveLine); predictiveLine = null; }
+            predictiveLineState = 1; updatePredictiveLineButtonDisplay(); 
+            etaDisplayMode = 0; updateEtaCalculatorButtonDisplay(); document.getElementById('etaCalculatorWidget').style.display = 'none'; 
+            speedLimitEnabled = false; updateSpeedLimitButtonDisplay(); document.getElementById('speedLimitWidget').style.display = 'none'; 
+            celestialDisplayMode = 0; updateCelestialButtonDisplay(); clearSunMoonVisuals();
+            setViewMode('none');
+            if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+            if (line) { map.removeLayer(line); line = null; }
+            if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
+            positionHistory = []; touristMarkers.forEach(m => map.removeLayer(m)); touristMarkers = [];
+            document.getElementById('touristInfoContent').innerHTML = 'Wybierz kategorię i poczekaj na lokalizację...';
+        }
+        showControls(); positionTouristInfo();
+    }
+
+    function calculateEtaInMinutes(speed, distance) {
+        if (speed <= 0) return Infinity;
+        return (distance / speed) * 60;
+    }
+
+    function formatTime(date) {
+        if (!date || isNaN(date.getTime())) return '';
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+    }
+
+    function formatEtaAsClock(timestamp) {
+        if (timestamp === Infinity) return '--:--';
+        const etaDate = new Date(timestamp);
+        return etaDate.toTimeString().split(':').slice(0, 2).join(':');
+    }
+
+    function togglePredictiveLine() {
+        predictiveLineState = predictiveLineState === 1 ? 0 : 1;
+        if (predictiveLineState === 0) {
+            if (predictiveLine) { map.removeLayer(predictiveLine); predictiveLine = null; }
+        } else {
+            if (userMarker) updateLocationInfo({ coords: { latitude: userMarker.getLatLng().lat, longitude: userMarker.getLatLng().lng, speed: userMarker.getLatLng().speed || 0, heading: userMarker.getLatLng().heading || 0 } });
+            else if (isGpsSimulated) updateLocationInfo({ coords: { latitude: simulatedLatLng.lat, longitude: simulatedLatLng.lng, speed: simulatedSpeed / 3.6, heading: simulatedHeading } });
+        }
+        updatePredictiveLineButtonDisplay(); showControls();
+    }
+
+    function updatePredictiveLineButtonDisplay() {
+        const button = document.getElementById('menuPredictiveLineButton');
+        if (predictiveLineState === 0) { button.textContent = 'Linia kierunku: Wyłączona'; button.classList.remove('active'); } 
+        else { button.textContent = 'Linia kierunku: Włączona'; button.classList.add('active'); }
+    }
+
+    function updateEtaCalculatorButtonDisplay() {
+        const etaToggleButton = document.getElementById('menuEtaButton');
+        let tooltipText = '';
+        let buttonText = '';
+        switch (etaDisplayMode) {
+            case 0: 
+                tooltipText = 'Kalkulator ETA: Wyłączony'; 
+                buttonText = 'Kalkulator ETA: Wyłączony';
+                etaToggleButton.classList.remove('active');
+                break;
+            case 1: 
+                tooltipText = 'Kalkulator ETA: Tryb 3 prędkości'; 
+                buttonText = 'Kalkulator ETA: Tryb 3 prędkości';
+                etaToggleButton.classList.add('active');
+                break;
+            case 3: 
+                tooltipText = 'Kalkulator ETA: Tryb zakresu'; 
+                buttonText = 'Kalkulator ETA: Tryb zakresu';
+                etaToggleButton.classList.add('active');
+                break;
+            case 4: 
+                tooltipText = 'Kalkulator ETA: Tryb rozrywkowy'; 
+                buttonText = 'Kalkulator ETA: Tryb rozrywkowy';
+                etaToggleButton.classList.add('active');
+                break;
+            default: 
+                tooltipText = 'Kalkulator ETA';
+                buttonText = 'Kalkulator ETA';
+                etaToggleButton.classList.remove('active');
+        }
+        etaToggleButton.setAttribute('data-tooltip', tooltipText);
+        etaToggleButton.textContent = buttonText;
+    }
+
+    function toggleSpeedLimit() {
+        speedLimitEnabled = !speedLimitEnabled;
+        const speedLimitWidget = document.getElementById('speedLimitWidget');
+        const speedLimitButton = document.getElementById('speedLimitButton');
+        if (speedLimitEnabled) { speedLimitWidget.style.display = 'block'; updateSpeedLimitDisplay(); } 
+        else { speedLimitWidget.style.display = 'none'; }
+        updateSpeedLimitButtonDisplay();
+        speedLimitButton.disabled = !gpsTrackingEnabled && !isGpsSimulated;
+        showControls();
+    }
+
+    function updateSpeedLimitButtonDisplay() {
+        const speedLimitButton = document.getElementById('speedLimitButton');
+        if (speedLimitEnabled) speedLimitButton.setAttribute('data-tooltip', 'Ograniczenia prędkości: Włączone');
+        else speedLimitButton.setAttribute('data-tooltip', 'Ograniczenia prędkości: Wyłączone');
+    }
+
+    async function fetchSpeedLimit(lat, lon) {
+        const query = `[out:json][timeout:10];way(around:50,${lat},${lon})[highway][maxspeed];out body;>;out skel qt;`;
+        const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+        try {
+            const response = await fetchWithTimeout(url, {}, 10000);
+            const data = await response.json();
+            if (data.elements && data.elements.length > 0) {
+                const road = data.elements.find(el => el.tags && el.tags.maxspeed);
+                if (road) {
+                    let maxspeed = road.tags.maxspeed;
+                    if (maxspeed.toLowerCase().includes('mph')) maxspeed = parseFloat(maxspeed) * 1.60934;
+                    else if (maxspeed.toLowerCase().includes('km/h')) maxspeed = parseFloat(maxspeed);
+                    else if (maxspeed.toLowerCase() === 'walk') maxspeed = 5;
+                    else if (maxspeed.toLowerCase() === 'none') maxspeed = Infinity;
+                    else maxspeed = parseFloat(maxspeed);
+                    if (!isNaN(maxspeed)) return maxspeed;
+                }
+            }
+            return null;
+        } catch (error) { return null; }
+    }
+
+    async function updateSpeedLimitDisplay() {
+        const speedLimitWidget = document.getElementById('speedLimitWidget');
+        if (!speedLimitEnabled) { speedLimitWidget.style.display = 'none'; return; }
+        const currentLatLng = userMarker ? userMarker.getLatLng() : (isGpsSimulated ? simulatedLatLng : null);
+        if (!currentLatLng) {
+            speedLimitWidget.innerHTML = '<span class="no-data">Oczekiwanie na lokalizację GPS...</span>';
+            speedLimitWidget.style.display = 'block';
+            return;
+        }
+        let distanceText = '<span class="no-data">Brak celu</span>';
+        if (destLatLng) {
+            const currentRemainingDist = haversineDistance(currentLatLng, destLatLng);
+            if (currentRemainingDist > 1) distanceText = `${currentRemainingDist.toFixed(1)} km`;
+            else distanceText = `${(currentRemainingDist * 1000).toFixed(0)} m`;
+        }
+        if (Date.now() - lastSpeedLimitCheckTime > SPEED_LIMIT_REFRESH_INTERVAL || currentSpeedLimit === null) {
+            lastSpeedLimitCheckTime = Date.now();
+            const limit = await fetchSpeedLimit(currentLatLng.lat, currentLatLng.lng);
+            if (limit !== null) currentSpeedLimit = limit;
+        }
+        let limitHtml = '';
+        if (currentSpeedLimit !== null && currentSpeedLimit !== Infinity) {
+            limitHtml = `<span class="limit-text">Limit: ${currentSpeedLimit.toFixed(0)} km/h</span>`;
+            if (lastCurrentSpeed > currentSpeedLimit) speedLimitWidget.classList.add('speed-alert');
+            else speedLimitWidget.classList.remove('speed-alert');
+        } else {
+            limitHtml = `<span class="no-data">Brak danych o limicie</span>`;
+            speedLimitWidget.classList.remove('speed-alert');
+            currentSpeedLimit = null; 
+        }
+        speedLimitWidget.innerHTML = `<span class="distance-text">${distanceText}</span><br>${limitHtml}`;
+        speedLimitWidget.style.display = 'block';
+    }
+
+    async function fetchHistoryData() {
+        if (historyDataLoaded) return true;
+        try {
+            const response = await fetchWithTimeout(HISTORY_CSV_URL, {}, 15000);
+            const text = await response.text();
+            const rows = text.trim().split('\n');
+            if (rows.length < 2) throw new Error("CSV jest pusty");
+            historyHeaders = parseCsvRow(rows.shift());
+            historyData = rows.map(rowStr => {
+                const values = parseCsvRow(rowStr);
+                const cityObj = {};
+                historyHeaders.forEach((header, index) => { cityObj[header] = values[index] || ''; });
+                return cityObj;
+            }).filter(city => city['pozycja-koordynaty GPS'] && city['pozycja-koordynaty GPS'].includes(','));
+            historyAvailableYears = historyHeaders.filter(h => /^\d{4}$/.test(h)).sort((a, b) => parseInt(b) - parseInt(a));
+            historyDataLoaded = true;
+            populateHistoryDateSelectors();
+            return true;
+        } catch (error) {
+            console.error("Błąd historii:", error);
+            showCustomAlert(`Nie udało się załadować historii: ${error.message}`);
+            return false;
+        }
+    }
+    
+    async function fetchGdanskData() {
+        if (gdanskDataLoaded) return true;
+        try {
+            const response = await fetchWithTimeout(GDANSK_CSV_URL, {}, 15000);
+            const text = await response.text();
+            const rows = text.trim().split('\n');
+            if (rows.length < 2) throw new Error("CSV Gdańska jest pusty");
+            
+            const headers = parseCsvRow(rows.shift());
+            
+            gdanskData = rows.map(rowStr => {
+                const values = parseCsvRow(rowStr);
+                const obj = {};
+                headers.forEach((header, index) => { obj[header] = values[index] || ''; });
+                return obj;
+            }).filter(item => item['wspolrzedne']); 
+            
+            gdanskDataLoaded = true;
+            return true;
+        } catch (error) {
+            console.error("Błąd Gdańska:", error);
+            showCustomAlert(`Nie udało się załadować danych Gdańska. Sprawdź GID w kodzie.`);
+            return false;
+        }
+    }
+
+    function clearCurrentCelestial() {
+        sunLine.forEach(line => { if (line && map.hasLayer(line)) map.removeLayer(line); });
+        moonLine.forEach(line => { if (line && map.hasLayer(line)) map.removeLayer(line); });
+        if (sunIcon) { map.removeLayer(sunIcon); sunIcon = null; }
+        if (moonIcon) { map.removeLayer(moonIcon); moonIcon = null; }
+        sunLine = []; moonLine = [];
+    }
+
+    function clearRiseSetCelestial() {
+        sunriseLine.forEach(line => { if (line && map.hasLayer(line)) map.removeLayer(line); });
+        sunsetLine.forEach(line => { if (line && map.hasLayer(line)) map.removeLayer(line); });
+        moonriseLine.forEach(line => { if (line && map.hasLayer(line)) map.removeLayer(line); });
+        moonsetLine.forEach(line => { if (line && map.hasLayer(line)) map.removeLayer(line); });
+        if (sunriseLabel) { map.removeLayer(sunriseLabel); sunriseLabel = null; }
+        if (sunsetLabel) { map.removeLayer(sunsetLabel); sunsetLabel = null; }
+        if (moonriseLabel) { map.removeLayer(moonriseLabel); moonriseLabel = null; }
+        if (moonsetLabel) { map.removeLayer(moonsetLabel); moonsetLabel = null; }
+        sunriseLine = []; sunsetLine = []; moonriseLine = []; moonsetLine = [];
+    }
+    
+    function clearSunMoonVisuals() {
+        clearCurrentCelestial(); clearRiseSetCelestial();
+    }
+
+    function toggleCelestialVisuals() {
+        celestialDisplayMode = (celestialDisplayMode + 1) % 4;
+        updateCelestialButtonDisplay();
+        if (celestialDisplayMode > 0) triggerCelestialUpdate();
+        else clearSunMoonVisuals();
+        showControls();
+    }
+
+    function updateCelestialButtonDisplay() {
+        const button = document.getElementById('menuCelestialButton');
+        switch (celestialDisplayMode) {
+            case 0: button.textContent = 'Dane astronomiczne: Wył.'; button.classList.remove('active'); break;
+            case 1: button.textContent = 'Dane astronomiczne: Pozycja'; button.classList.add('active'); break;
+            case 2: button.textContent = 'Dane astronomiczne: Wsch/Zach'; button.classList.add('active'); break;
+            case 3: button.textContent = 'Dane astronomiczne: Wszystko'; button.classList.add('active'); break;
+        }
+    }
+    
+    function getDynamicCelestialLineKm() {
+        const zoom = map.getZoom();
+        const lineKm = 200 * Math.pow(0.5, (zoom - 6));
+        if (lineKm < 0.05) return 0.05;
+        if (lineKm > 500) return 500;
+        return lineKm;
+    }
+    
+    function triggerCelestialUpdate() {
+        if (currentUserLat || (isGpsSimulated && simulatedLatLng.lat)) { 
+            const now = Date.now();
+            calculateAndCacheCelestialData(currentUserLat || simulatedLatLng.lat, currentUserLon || simulatedLatLng.lng, now);
+            drawCelestialLines(); lastCelestialUpdate = now;
+        } else if (celestialDisplayMode > 0) {
+            celestialDisplayMode = 0; updateCelestialButtonDisplay(); showCustomAlert("Włącz GPS, aby zobaczyć dane astronomiczne.");
+        }
+    }
+    
+    function calculateAndCacheCelestialData(lat, lon, time) {
+        const date = new Date(time);
+        celestialCache = {};
+        try {
+            const sunPos = SunCalc.getPosition(date, lat, lon);
+            const moonPos = SunCalc.getMoonPosition(date, lat, lon);
+            const moonIllumination = SunCalc.getMoonIllumination(date);
+            celestialCache.sunAltitude = sunPos.altitude * 180 / Math.PI;
+            celestialCache.sunBearing = (sunPos.azimuth * 180 / Math.PI + 180) % 360;
+            celestialCache.moonAltitude = moonPos.altitude * 180 / Math.PI;
+            celestialCache.moonBearing = (moonPos.azimuth * 180 / Math.PI + 180) % 360;
+            celestialCache.moonIllumination = moonIllumination; 
+            const times = SunCalc.getTimes(date, lat, lon);
+            const moonTimes = SunCalc.getMoonTimes(date, lat, lon, true);
+            celestialCache.sunTimes = times; celestialCache.moonTimes = moonTimes;
+            if (times.sunrise) celestialCache.sunriseBearing = (SunCalc.getPosition(times.sunrise, lat, lon).azimuth * 180 / Math.PI + 180) % 360;
+            if (times.sunset) celestialCache.sunsetBearing = (SunCalc.getPosition(times.sunset, lat, lon).azimuth * 180 / Math.PI + 180) % 360;
+            if (moonTimes.rise) celestialCache.moonriseBearing = (SunCalc.getMoonPosition(moonTimes.rise, lat, lon).azimuth * 180 / Math.PI + 180) % 360;
+            if (moonTimes.set) celestialCache.moonsetBearing = (SunCalc.getMoonPosition(moonTimes.set, lat, lon).azimuth * 180 / Math.PI + 180) % 360;
+        } catch (e) { celestialCache = {}; }
+    }
+    
+    function drawCelestialLines() {
+        const currentLatLng = userMarker ? userMarker.getLatLng() : (isGpsSimulated ? simulatedLatLng : null);
+        if (!currentLatLng || Object.keys(celestialCache).length === 0) return;
+        const km = getDynamicCelestialLineKm();
+        clearCurrentCelestial();
+        if (celestialDisplayMode === 1 || celestialDisplayMode === 3) {
+            try {
+                const sunDest = calculateDestinationPoint(currentLatLng.lat, currentLatLng.lng, celestialCache.sunBearing, km);
+                const sunOptions = getLineOptions(celestialCache.sunAltitude, '#FFFF00', 'black'); 
+                sunLine = [ L.polyline([currentLatLng, sunDest], sunOptions[0]).addTo(map), L.polyline([currentLatLng, sunDest], sunOptions[1]).addTo(map) ];
+                const sunLabelPos = calculateDestinationPoint(currentLatLng.lat, currentLatLng.lng, celestialCache.sunBearing, km / 2);
+                sunIcon = L.marker(sunLabelPos, { icon: createSunIcon(celestialCache.sunAltitude) }).addTo(map);
+
+                const moonDest = calculateDestinationPoint(currentLatLng.lat, currentLatLng.lng, celestialCache.moonBearing, km);
+                const moonOptions = getLineOptions(celestialCache.moonAltitude, '#C0C0C0', '#000080');
+                moonLine = [ L.polyline([currentLatLng, moonDest], moonOptions[0]).addTo(map), L.polyline([currentLatLng, moonDest], moonOptions[1]).addTo(map) ];
+                const moonLabelPos = calculateDestinationPoint(currentLatLng.lat, currentLatLng.lng, celestialCache.moonBearing, km / 2);
+                moonIcon = L.marker(moonLabelPos, { icon: createMoonIcon(celestialCache.moonIllumination, celestialCache.moonAltitude) }).addTo(map);
+            } catch (e) { }
+        }
+        clearRiseSetCelestial();
+        if (celestialDisplayMode === 2 || celestialDisplayMode === 3) {
+            try {
+                const riseSetOptions = [ { color: 'black', weight: 4, opacity: 0.8, dashArray: '10, 10' }, { weight: 2, opacity: 0.9, dashArray: '10, 10' } ];
+                if (celestialCache.sunriseBearing) {
+                    const dest = calculateDestinationPoint(currentLatLng.lat, currentLatLng.lng, celestialCache.sunriseBearing, km);
+                    riseSetOptions[1].color = '#FF8C00';
+                    sunriseLine = [ L.polyline([currentLatLng, dest], riseSetOptions[0]).addTo(map), L.polyline([currentLatLng, dest], riseSetOptions[1]).addTo(map) ];
+                    const text = `Wschód Sł. ${formatTime(celestialCache.sunTimes.sunrise)}`;
+                    sunriseLabel = L.marker(dest, { icon: L.divIcon({ className: 'celestial-event-label', html: text, iconAnchor: [0, 5] }) }).addTo(map);
+                }
+                if (celestialCache.sunsetBearing) {
+                    const dest = calculateDestinationPoint(currentLatLng.lat, currentLatLng.lng, celestialCache.sunsetBearing, km);
+                    riseSetOptions[1].color = '#FF4500';
+                    sunsetLine = [ L.polyline([currentLatLng, dest], riseSetOptions[0]).addTo(map), L.polyline([currentLatLng, dest], riseSetOptions[1]).addTo(map) ];
+                    const text = `Zachód Sł. ${formatTime(celestialCache.sunTimes.sunset)}`;
+                    sunsetLabel = L.marker(dest, { icon: L.divIcon({ className: 'celestial-event-label', html: text, iconAnchor: [0, 5] }) }).addTo(map);
+                }
+                if (celestialCache.moonriseBearing && celestialCache.moonTimes.rise) {
+                    const dest = calculateDestinationPoint(currentLatLng.lat, currentLatLng.lng, celestialCache.moonriseBearing, km);
+                    riseSetOptions[1].color = '#B0C4DE';
+                    moonriseLine = [ L.polyline([currentLatLng, dest], riseSetOptions[0]).addTo(map), L.polyline([currentLatLng, dest], riseSetOptions[1]).addTo(map) ];
+                    const text = `Wschód Ks. ${formatTime(celestialCache.moonTimes.rise)}`;
+                    moonriseLabel = L.marker(dest, { icon: L.divIcon({ className: 'celestial-event-label', html: text, iconAnchor: [0, 5] }) }).addTo(map);
+                }
+                if (celestialCache.moonsetBearing && celestialCache.moonTimes.set) {
+                    const dest = calculateDestinationPoint(currentLatLng.lat, currentLatLng.lng, celestialCache.moonsetBearing, km);
+                    riseSetOptions[1].color = '#778899';
+                    moonsetLine = [ L.polyline([currentLatLng, dest], riseSetOptions[0]).addTo(map), L.polyline([currentLatLng, dest], riseSetOptions[1]).addTo(map) ];
+                    const text = `Zachód Ks. ${formatTime(celestialCache.moonTimes.set)}`;
+                    moonsetLabel = L.marker(dest, { icon: L.divIcon({ className: 'celestial-event-label', html: text, iconAnchor: [0, 5] }) }).addTo(map);
+                }
+            } catch (e) { }
+        }
+    }
+
+    function startMapViewFitTimer() {
+        stopMapViewFitTimer();
+        mapViewFitInterval = setTimeout(() => {
+            isManualMove = false; mapViewFitInterval = null;
+            if (gpsTrackingEnabled || isGpsSimulated) {
+                const currentLatLng = userMarker ? userMarker.getLatLng() : (isGpsSimulated ? simulatedLatLng : null);
+                if (currentLatLng) updateMapView(currentLatLng, lastCurrentSpeed);
+            }
+        }, MAP_VIEW_FIT_INTERVAL);
+    }
+
+    function stopMapViewFitTimer() {
+        if (mapViewFitInterval) { clearTimeout(mapViewFitInterval); mapViewFitInterval = null; }
+    }
+
+    const savedMapStyle = localStorage.getItem('lastMapStyle') || 'osm';
+    changeMapStyle(savedMapStyle);
+    document.getElementById('mapStyle').value = savedMapStyle;
+    populateCategories();
+    
+    // Inicjalizacja kategorii
+    const historySelectors = document.getElementById('historyDateSelectors');
+    if (selectedTouristCategory === 'historia') {
+        historySelectors.style.display = 'block'; 
+        if (!historyDataLoaded) { 
+            document.getElementById('historyDate1').innerHTML = '<option>Ładowanie...</option>';
+            document.getElementById('historyDate2').innerHTML = '<option>Ładowanie...</option>';
+            fetchHistoryData(); 
+        }
+    } else if (selectedTouristCategory === 'gdansk_expansion') {
+        fetchGdanskData();
+        historySelectors.style.display = 'none';
+    } else {
+        historySelectors.style.display = 'none';
+    }
+
+    map.on('click', onMapClick);
+    showControls(); 
+    document.getElementById('voiceSearchContainer').style.display = 'none';
+    
+    map.on('dragstart zoomstart touchstart mousemove', showControls);
+    document.addEventListener('mousemove', showControls);
+    document.addEventListener('keydown', showControls);
+    document.addEventListener('touchstart', showControls);
+    map.on('movestart', (e) => {
+        if (!isProgrammaticMove) { showControls(); isManualMove = true; startMapViewFitTimer(); }
+    });
+    map.on('moveend', () => { isProgrammaticMove = false; });
+    document.getElementById('menuToggle').addEventListener('click', showControls);
+    document.getElementById('menu').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') showControls();
+    });
+    
+    document.getElementById('viewModeButton').addEventListener('click', function() { handleButtonClick(this, toggleViewMode); });
+    document.getElementById('voiceWidgetButton').addEventListener('click', function() { handleButtonClick(this, startQuickVoiceSearch); });
+    document.getElementById('speedLimitButton').addEventListener('click', function() { handleButtonClick(this, toggleSpeedLimit); });
+    
+    window.toggleMenu = toggleMenu; window.searchAddress = searchAddress; window.cancelNavigation = cancelNavigation; window.changeMapStyle = changeMapStyle; window.changeTouristCategory = changeTouristCategory; window.toggleGpsTracking = toggleGpsTracking; window.updateETACalculator = updateETACalculator; window.togglePredictiveLine = togglePredictiveLine; window.toggleCelestialVisuals = toggleCelestialVisuals; window.toggleFullScreen = toggleFullScreen; window.handleButtonClick = handleButtonClick; window.toggleEtaCalculator = toggleEtaCalculator; window.toggleTouristInfo = toggleTouristInfo; window.showTouristSiteOnMap = showTouristSiteOnMap; window.updateHistoryDates = updateHistoryDates; window.startQuickVoiceSearch = startQuickVoiceSearch;
+    
+    const startVoiceSearchBtn = document.getElementById('startVoiceSearchBtn');
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+        document.getElementById('voiceWidgetButton').style.display = 'none';
+    }
+
+    toggleGpsTracking(); 
+    const savedViewMode = localStorage.getItem('currentViewMode'); setViewMode(savedViewMode || 'fit');
+    document.getElementById('speedSlower').value = speedSlower;
+    document.getElementById('speedOptimal').value = speedOptimal;
+    document.getElementById('speedFaster').value = speedFaster;
+    etaDisplayMode = 0; updateEtaCalculatorButtonDisplay(); document.getElementById('etaCalculatorWidget').style.display = 'none'; 
+    predictiveLineState = 1; updatePredictiveLineButtonDisplay();
+    speedLimitEnabled = false; updateSpeedLimitButtonDisplay(); document.getElementById('speedLimitWidget').style.display = 'none';
+    celestialDisplayMode = 0; updateCelestialButtonDisplay(); clearSunMoonVisuals();
+    const toggleTouristInfoButton = document.getElementById('toggleTouristInfoButton');
+    toggleTouristInfoButton.innerHTML = 'ℹ️'; toggleTouristInfoButton.setAttribute('data-tooltip', 'Informacje turystyczne: Wyłączone');
+    toggleTouristInfoButton.disabled = !gpsTrackingEnabled && !isGpsSimulated;
+    document.getElementById('touristInfo').style.display = 'none';
+    positionTouristInfo();
+
+    map.on('click', (e) => {
+        const clickedElement = e.originalEvent.target;
+        const isButton = clickedElement.closest('.map-controls-container button');
+        const isMenuToggle = clickedElement.closest('#menuToggle button');
+        const isEtaWidget = clickedElement.closest('#etaCalculatorWidget');
+        const isTouristInfo = clickedElement.closest('#touristInfo');
+        const isSpeedLimitWidget = clickedElement.closest('#speedLimitWidget');
+        if (!isButton && !isMenuToggle && !isEtaWidget && !isTouristInfo && !isSpeedLimitWidget && currentTooltip) hideTooltip();
+    });
+    
+    const lastLat = parseFloat(localStorage.getItem('lastLat'));
+    const lastLng = parseFloat(localStorage.getItem('lastLng'));
+    if (!isNaN(lastLat) && !isNaN(lastLng)) { simulatedLatLng = L.latLng(lastLat, lastLng); map.setView([lastLat, lastLng], 16); } else { map.setView([52.0, 19.0], 6); }
+});
+  </script>
+</head>
+<body>
+  <div id="menuToggle"><button onclick="toggleMenu()">☰ Menu</button></div>
+  <div id="menu">
+    <div id="searchBox">
+      <input type="text" id="address" placeholder="Wpisz adres" size="30">
+      <button onclick="searchAddress()">Potwierdź</button>
+      <button onclick="cancelNavigation()">Anuluj</button>
+    </div>
+    <select id="mapStyle" onchange="changeMapStyle(this.value)">
+      <option value="osm">OSM</option>
+      <option value="sat">Satelita (Hybryda ESRI)</option>
+      <option value="topo">Topograficzna (OpenTopo)</option>
+    </select>
+    <select id="categorySelect" onchange="changeTouristCategory()">
+    </select>
+    <button id="gpsTrackingButton" onclick="toggleGpsTracking()" style="margin-top: 5px;">🛰️ Włącz GPS</button>
+    <div class="toggle-button-group" style="margin-top: 10px;">
+        <label style="margin-bottom: 5px; display: block;">Prędkości ETA (km/h)</label>
+        <div style="display: flex; justify-content: space-between; gap: 5px;">
+            <div style="text-align: center;">
+                <span style="font-size: 10px; color: #ccc;">Wolna</span>
+                <input type="number" id="speedSlower" value="15" min="1" step="1" onchange="updateETACalculator()" style="width: 100%; padding: 5px; text-align: center;">
+            </div>
+            <div style="text-align: center;">
+                <span style="font-size: 10px; color: #00FFC0;">Optym.</span>
+                <input type="number" id="speedOptimal" value="17" min="1" step="1" onchange="updateETACalculator()" style="width: 100%; padding: 5px; text-align: center;">
+            </div>
+            <div style="text-align: center;">
+                <span style="font-size: 10px; color: #ccc;">Szybka</span>
+                <input type="number" id="speedFaster" value="19" min="1" step="1" onchange="updateETACalculator()" style="width: 100%; padding: 5px; text-align: center;">
+            </div>
+        </div>
+    </div>
+    <div class="toggle-button-group">
+      <label>Ustawienia widoku</label>
+      <button id="menuEtaButton" class="toggle-button" onclick="handleButtonClick(this, toggleEtaCalculator)">Kalkulator ETA: Wyłączony</button>
+      <button id="menuPredictiveLineButton" class="toggle-button active" onclick="togglePredictiveLine()">Linia kierunku: Włączona</button>
+      <button id="menuCelestialButton" class="toggle-button" onclick="toggleCelestialVisuals()">Dane astronomiczne: Wył.</button>
+<div class="toggle-button-group" id="historyDateSelectors" style="display: none;">
+      <label>Wybierz lata do porównania</label>
+      <div style="display: flex; gap: 5px; margin-top: 5px;">
+        <select id="historyDate1" onchange="updateHistoryDates()" oninput="updateHistoryDates()" style="width: 50%;">
+          <option value="">Ładowanie...</option>
+        </select>
+        <select id="historyDate2" onchange="updateHistoryDates()" oninput="updateHistoryDates()" style="width: 50%;">
+          <option value="">Ładowanie...</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="toggle-button-group" id="buildingSettings" style="display: none;">
+      <label>Liczba wyświetlanych budynków (1-10)</label>
+      <input type="range" id="buildingCountRange" min="1" max="10" value="5" oninput="document.getElementById('buildingCountVal').innerText = this.value; changeTouristCategory();" style="width: 100%;">
+      <div style="text-align: center; font-size: 12px; color: #ccc;">Aktualnie: <span id="buildingCountVal">5</span></div>
+    </div>
+    </div>
+    <button onclick="toggleFullScreen()">⛶ Pełny ekran</button>
+  </div>
+  <div id="topLeftControls" class="map-controls-container">
+<button id="speedLimitButton" data-tooltip="Ograniczenia prędkości / Strona WWW">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://prostodocelu.racibo.pl&margin=0" alt="QR">
+    </button>
+  </div>
+  <div id="rightControls" class="map-controls-container">
+    <button id="viewModeButton" data-tooltip="Tryb widoku"></button>
+    </div>
+  <div id="leftControls" class="map-controls-container">
+    <button id="voiceWidgetButton" data-tooltip="Wyszukiwanie głosowe">🎤</button>
+    <button id="toggleTouristInfoButton" onclick="handleButtonClick(this, toggleTouristInfo)" data-tooltip="Informacje turystyczne">ℹ️</button>
+  </div>
+  <div id="map"></div>
+  <div id="etaCalculatorWidget"></div>
+  <div id="touristInfo">
+    <div id="touristInfoContent">Wybierz kategorię i poczekaj na lokalizację...</div>
+    <div id="gpsStatusMessage" class="gps-sim-message" style="display: none;"></div>
+  </div>
+  <div id="speedLimitWidget"></div>
+  <div id="voiceSearchContainer" style="display: none;">
+    <button id="startVoiceSearchBtn"></button>
+  </div>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').then(registration => {
+        console.log('SW Azymut zarejestrowany: ', registration.scope);
+      }, err => {
+        console.log('SW Azymut - rejestracja nieudana: ', err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
