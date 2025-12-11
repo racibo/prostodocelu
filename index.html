@@ -1946,6 +1946,14 @@ async function loadNearbyTouristSites(lat, lon, categoryKey) {
                 lastTouristInfoUpdateTime = currentTimeCheck;
             }
         }
+// Specjalna obsługa budynków - uaktualniaj częściej
+        if (touristInfoVisible && selectedTouristCategory === 'budynki_trojmiasto' && (gpsTrackingEnabled || isGpsSimulated)) {
+            const currentTimeCheck = Date.now();
+            if (currentTimeCheck - lastTouristInfoUpdateTime > 5000) { // Co 5 sekund zamiast 60
+                loadNearbyTouristSites(latitude, longitude, 'budynki_trojmiasto');
+                lastTouristInfoUpdateTime = currentTimeCheck;
+            }
+        }
         positionTouristInfo();
         updateSpeedLimitDisplay();
     }
@@ -2385,20 +2393,31 @@ async function loadNearbyTouristSites(lat, lon, categoryKey) {
     document.getElementById('mapStyle').value = savedMapStyle;
     populateCategories();
     
-    // Inicjalizacja kategorii
+// Inicjalizacja kategorii
     const historySelectors = document.getElementById('historyDateSelectors');
+    const buildingSettings = document.getElementById('buildingSettings');
+    
     if (selectedTouristCategory === 'historia') {
         historySelectors.style.display = 'block'; 
+        buildingSettings.style.display = 'none';
         if (!historyDataLoaded) { 
-            document.getElementById('historyDate1').innerHTML = '<option>Ładowanie...</option>';
-            document.getElementById('historyDate2').innerHTML = '<option>Ładowanie...</option>';
+            document.getElementById('historyDate1').innerHTML = '<option>Åadowanie...</option>';
+            document.getElementById('historyDate2').innerHTML = '<option>Åadowanie...</option>';
             fetchHistoryData(); 
+        }
+    } else if (selectedTouristCategory === 'budynki_trojmiasto') {
+        historySelectors.style.display = 'none';
+        buildingSettings.style.display = 'block';
+        if (!buildingsDataLoaded) {
+            fetchBuildingsData();
         }
     } else if (selectedTouristCategory === 'gdansk_expansion') {
         fetchGdanskData();
         historySelectors.style.display = 'none';
+        buildingSettings.style.display = 'none';
     } else {
         historySelectors.style.display = 'none';
+        buildingSettings.style.display = 'none';
     }
 
     map.on('click', onMapClick);
