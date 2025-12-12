@@ -689,6 +689,9 @@
 
     let lastTouristInfoUpdateTime = 0;
     const TOURIST_INFO_REFRESH_INTERVAL = 60 * 1000;
+    
+    let lastBuildingsUpdateTime = 0;
+const BUILDINGS_UPDATE_INTERVAL = 10 * 1000; // Co 10 sekund dla budynków
 
     let isGpsSimulated = false;
     let simulatedLatLng = L.latLng(52.2297, 21.0122);
@@ -1155,71 +1158,95 @@ const categories = {
         }
         setTimeout(() => { isProgrammaticMove = false; }, 100);
     }
-    
-    function startQuickVoiceSearch() {
-        const btn = document.getElementById('voiceWidgetButton');
-        if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-            showCustomAlert('Brak wsparcia dla rozpoznawania mowy.');
-            return;
-        }
-        
-        if (recognition && btn.classList.contains('listening')) {
-            recognition.abort();
-            btn.classList.remove('listening');
-            return;
-        }
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!recognition) {
-            recognition = new SpeechRecognition();
-            recognition.lang = 'pl-PL'; 
-            recognition.interimResults = true; 
-            recognition.continuous = false;
-        }
-        
-        recognition.onresult = (event) => {
-            clearTimeout(autoConfirmTimeout);
-            let transcript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) transcript += event.results[i][0].transcript;
-            
-            document.getElementById('address').value = transcript;
-            
-            if (event.results[event.results.length - 1].isFinal) {
-                autoConfirmTimeout = setTimeout(() => { 
-                    searchAddress(); 
-                    const btn = document.getElementById('voiceWidgetButton');
-                    if(btn) btn.classList.remove('listening');
-                }, 2500);
-            }
-        };
-        
-        recognition.onerror = (event) => { 
-             showCustomAlert('Błąd mowy: ' + event.error);
-             const btn = document.getElementById('voiceWidgetButton');
-             if(btn) btn.classList.remove('listening');
-        };
-        
-        recognition.onend = () => { 
-            const btn = document.getElementById('voiceWidgetButton');
-            if(btn) btn.classList.remove('listening');
-        };
-
-        try {
-            document.getElementById('address').value = '';
-            btn.classList.add('listening');
-            recognition.start();
-            showCustomAlert('Mów teraz...');
-            setTimeout(() => {
-                if(btn.classList.contains('listening')) {
-                     recognition.stop();
-                     btn.classList.remove('listening');
-                }
-            }, 8000);
-        } catch(e) { 
-            showCustomAlert("Błąd mikrofonu."); 
-            btn.classList.remove('listening');
-        }
+    function startAutoVoiceSearch() {
+    const btn = document.getElementById('voiceWidgetButton');
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+        return;
     }
+    
+    if (recognition && btn.classList.contains('listening')) {
+        recognition.abort();
+        btn.classList.remove('listening');
+        return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!recognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'pl-PL'; 
+        recognition.interimResults = true; 
+        recognition.continuous = false;
+    }
+    
+    // TWORZYMY OKIENKO Z TEKSTEM
+    let voiceModal = document.getElementById('voiceInputModal');
+    if (!voiceModal) {
+        voiceModal = document.createElement('div');
+        voiceModal.id = 'voiceInputModal';
+        voiceModal.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.95); color: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 25px rgba(0, 0, 0, 0.7); z-index: 2000; text-align: center; min-width: 300px; max-width: 90%;`;
+        document.body.appendChild(voiceModal);
+    }
+    voiceModal.innerHTML = `
+        <div style="font-size: 1.2em; margin-bottom: 15px; font-weight: bold;">🎤 Słucham...</div>
+        <div id="voiceText" style="font-size: 1.8em; color: #00FFC0; text-shadow: 0 0 10px rgba(0, 255, 192, 0.5); min-height: 50px; word-wrap: break-word;"></div>
+    `;
+    voiceModal.style.display = 'block';
+    
+    recognition.onresult = (event) => {
+        clearTimeout(autoConfirmTimeout);
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            transcript += event.results[i][0].transcript;
+        }
+        
+        document.getElementById('address').value = transcript;
+        document.getElementById('voiceText').textContent = transcript;
+        
+        if (event.results[event.results.length - 1].isFinal) {
+            autoConfirmTimeout = setTimeout(() => { 
+                if (transcript.trim()) {
+                    searchAddress();
+                }
+                voiceModal.style.display = 'none';
+                const btn = document.getElementById('voiceWidgetButton');
+                if(btn) btn.classList.remove('listening');
+            }, 1500);
+        }
+    };
+    
+    recognition.onerror = (event) => { 
+        document.getElementById('voiceText').textContent = 'Błąd: ' + event.error;
+        voiceModal.style.display = 'none';
+        const btn = document.getElementById('voiceWidgetButton');
+        if(btn) btn.classList.remove('listening');
+    };
+    
+    recognition.onend = () => { 
+        setTimeout(() => {
+            voiceModal.style.display = 'none';
+        }, 500);
+        const btn = document.getElementById('voiceWidgetButton');
+        if(btn) btn.classList.remove('listening');
+    };
+
+    try {
+        document.getElementById('address').value = '';
+        btn.classList.add('listening');
+        recognition.start();
+        setTimeout(() => {
+            if(btn && btn.classList.contains('listening')) {
+                recognition.stop();
+                btn.classList.remove('listening');
+            }
+        }, 8000);
+    } catch(e) { 
+        voiceModal.style.display = 'none';
+        btn.classList.remove('listening');
+    }
+}
+function startQuickVoiceSearch() {
+    startAutoVoiceSearch();
+}
 
     function getFunEtaFact(minutes) {
         if (minutes < 2) return { text: "Już prawie jesteś!", emoji: "🏁" };
@@ -1946,14 +1973,24 @@ async function loadNearbyTouristSites(lat, lon, categoryKey) {
                 lastTouristInfoUpdateTime = currentTimeCheck;
             }
         }
-// Specjalna obsługa budynków - uaktualniaj częściej
-        if (touristInfoVisible && selectedTouristCategory === 'budynki_trojmiasto' && (gpsTrackingEnabled || isGpsSimulated)) {
-            const currentTimeCheck = Date.now();
-            if (currentTimeCheck - lastTouristInfoUpdateTime > 5000) { // Co 5 sekund zamiast 60
-                loadNearbyTouristSites(latitude, longitude, 'budynki_trojmiasto');
-                lastTouristInfoUpdateTime = currentTimeCheck;
-            }
+// Specjalna obsługa budynków - uaktualniaj dynamicznie gdy się poruszamy
+if (touristInfoVisible && selectedTouristCategory === 'budynki_trojmiasto' && (gpsTrackingEnabled || isGpsSimulated)) {
+    const currentTimeCheck = Date.now();
+    // Sprawdź czy jesteśmy wystarczająco daleko od ostatniej aktualizacji
+    if (positionHistory.length >= 2) {
+        const lastHistoryEntry = positionHistory[positionHistory.length - 1];
+        const prevHistoryEntry = positionHistory[positionHistory.length - 2];
+        const distanceMoved = haversineDistance(lastHistoryEntry.latlng, prevHistoryEntry.latlng);
+        // Uaktualnij jeśli minęło wystarczająco czasu LUB przesunęliśmy się o >50m
+        if (currentTimeCheck - lastBuildingsUpdateTime > BUILDINGS_UPDATE_INTERVAL || distanceMoved > 0.05) {
+            loadNearbyTouristSites(latitude, longitude, 'budynki_trojmiasto');
+            lastBuildingsUpdateTime = currentTimeCheck;
         }
+    } else if (currentTimeCheck - lastBuildingsUpdateTime > BUILDINGS_UPDATE_INTERVAL) {
+        loadNearbyTouristSites(latitude, longitude, 'budynki_trojmiasto');
+        lastBuildingsUpdateTime = currentTimeCheck;
+    }
+}
         positionTouristInfo();
         updateSpeedLimitDisplay();
     }
@@ -2448,7 +2485,13 @@ async function loadNearbyTouristSites(lat, lon, categoryKey) {
         document.getElementById('voiceWidgetButton').style.display = 'none';
     }
 
-    toggleGpsTracking(); 
+    toggleGpsTracking();
+// Auto-start voice search
+setTimeout(() => {
+    if (!document.getElementById('address').value) {
+        startAutoVoiceSearch();
+    }
+}, 1000); 
     const savedViewMode = localStorage.getItem('currentViewMode'); setViewMode(savedViewMode || 'fit');
     document.getElementById('speedSlower').value = speedSlower;
     document.getElementById('speedOptimal').value = speedOptimal;
